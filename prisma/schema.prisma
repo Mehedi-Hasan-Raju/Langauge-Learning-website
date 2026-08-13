@@ -1,0 +1,340 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum AccessType {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ========================================
+// USER
+// ========================================
+
+model User {
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+  role     Role   @default(USER)
+
+  progress      UserProgress[]
+  submissions   WritingSubmission[]
+  subscriptions Subscription[]
+  payments      Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========================================
+// LEVEL
+// ========================================
+
+model Level {
+  id    String @id @default(uuid())
+  name  String @unique
+  order Int    @unique
+
+  books Book[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========================================
+// BOOK
+// ========================================
+
+model Book {
+  id     String  @id @default(uuid())
+  name   String
+  author String?
+
+  levelId String
+  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+  chapters Chapter[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([levelId])
+}
+
+// ========================================
+// CHAPTER
+// ========================================
+
+model Chapter {
+  id         String     @id @default(uuid())
+  title      String
+  chapterNo  Int
+  accessType AccessType @default(FREE)
+
+  bookId String
+  book   Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  vocabularies       Vocabulary[]
+  grammarTopics      GrammarTopic[]
+  sentenceExercises  SentenceExercise[]
+  writingTasks       WritingTask[]
+  listeningExercises ListeningExercise[]
+  progress           UserProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([bookId, chapterNo])
+  @@index([bookId])
+}
+
+// ========================================
+// VOCABULARY
+// ========================================
+
+model Vocabulary {
+  id             String  @id @default(uuid())
+  germanWord     String
+  englishMeaning String
+  article        String?
+  plural         String?
+  audioUrl       String?
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+// ========================================
+// GRAMMAR TOPIC
+// ========================================
+
+model GrammarTopic {
+  id          String @id @default(uuid())
+  title       String
+  explanation String
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  questions GrammarQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+// ========================================
+// GRAMMAR QUESTION
+// ========================================
+
+model GrammarQuestion {
+  id       String @id @default(uuid())
+  question String
+  type     String
+  answer   String
+  options  Json?
+
+  grammarId String
+  grammar   GrammarTopic @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([grammarId])
+}
+
+// ========================================
+// SENTENCE BUILDING
+// ========================================
+
+model SentenceExercise {
+  id       String @id @default(uuid())
+  question String
+  words    Json
+  answer   String
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+// ========================================
+// SCHREIBEN TASK
+// ========================================
+
+model WritingTask {
+  id          String @id @default(uuid())
+  title       String
+  instruction String
+  minWords    Int?
+  maxWords    Int?
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  submissions WritingSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+// ========================================
+// SCHREIBEN SUBMISSION
+// ========================================
+
+model WritingSubmission {
+  id       String @id @default(uuid())
+  answer   String
+  score    Float?
+  feedback Json?
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskId String
+  task   WritingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([taskId])
+}
+
+// ========================================
+// HÖREN / LISTENING
+// ========================================
+
+model ListeningExercise {
+  id         String  @id @default(uuid())
+  title      String
+  audioUrl   String
+  transcript String?
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+// ========================================
+// USER PROGRESS
+// ========================================
+
+model UserProgress {
+  id String @id @default(uuid())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  vocabularyProgress Float @default(0)
+  grammarProgress    Float @default(0)
+  sentenceProgress   Float @default(0)
+  writingProgress    Float @default(0)
+  listeningProgress  Float @default(0)
+  overallProgress    Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([userId])
+  @@index([chapterId])
+}
+
+// ========================================
+// SUBSCRIPTION
+// ========================================
+
+model Subscription {
+  id String @id @default(uuid())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+
+  status SubscriptionStatus @default(ACTIVE)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([endDate])
+}
+
+// ========================================
+// PAYMENT
+// ========================================
+
+model Payment {
+  id String @id @default(uuid())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("BDT")
+
+  status PaymentStatus @default(PENDING)
+
+  paymentMethod String?
+  transactionId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
