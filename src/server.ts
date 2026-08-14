@@ -1,6 +1,7 @@
 import app from "./app";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
+import authRoutes from "./modules/auth/auth.routes";
 
 const startServer = async () => {
   try {
@@ -22,5 +23,8 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+
+app.use("/api/auth", authRoutes);
 
 startServer();
