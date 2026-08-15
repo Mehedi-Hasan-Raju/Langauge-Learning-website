@@ -30,3 +30,6 @@ src/generated/
 .agents
 .claude
 .windsurf
+
+scripts/
+create-admin.ts
