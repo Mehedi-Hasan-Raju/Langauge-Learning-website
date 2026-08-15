@@ -64,3 +64,14 @@ export const login = async (
     });
   }
 }; 
+
+export const adminTest = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  res.status(200).json({
+    success: true,
+    message: "Welcome Admin!",
+    user: req.user,
+  });
+};
