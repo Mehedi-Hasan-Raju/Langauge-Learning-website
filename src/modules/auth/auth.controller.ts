@@ -1,5 +1,24 @@
 import {Request, Response } from 'express';
 import {registerUser,loginUser} from './auth.service';
+import { AuthRequest } from "../../middlewares/auth.middleware";
+
+export const getMe = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    res.status(200).json({
+      success: true,
+      user: req.user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
 
 
 export const register = async (
