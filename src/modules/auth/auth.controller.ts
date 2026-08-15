@@ -1,5 +1,5 @@
 import {Request, Response } from 'express';
-import {registerUser,loginUser} from './auth.service';
+import {registerUser,loginUser, getCurrentUser,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 
 export const getMe = async (
@@ -7,14 +7,26 @@ export const getMe = async (
   res: Response
 ) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const user = await getCurrentUser(req.user.userId);
+
     res.status(200).json({
       success: true,
-      user: req.user,
+      user,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(404).json({
       success: false,
-      message: "Something went wrong",
+      message:
+        error instanceof Error
+          ? error.message
+          : "User not found",
     });
   }
 };
@@ -75,3 +87,5 @@ export const adminTest = async (
     user: req.user,
   });
 };
+
+

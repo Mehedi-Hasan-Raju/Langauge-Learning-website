@@ -49,6 +49,7 @@ model User {
   submissions   WritingSubmission[]
   subscriptions Subscription[]
   payments      Payment[]
+  blogLikes     BlogLike[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,7 +80,7 @@ model Book {
   author String?
 
   levelId String
-  level   Level @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  level   Level  @relation(fields: [levelId], references: [id], onDelete: Cascade)
 
   chapters Chapter[]
 
@@ -100,7 +101,7 @@ model Chapter {
   accessType AccessType @default(FREE)
 
   bookId String
-  book   Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   vocabularies       Vocabulary[]
   grammarTopics      GrammarTopic[]
@@ -142,9 +143,10 @@ model Vocabulary {
 // ========================================
 
 model GrammarTopic {
-  id          String @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   explanation String
+  videoUrl    String?
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -162,11 +164,12 @@ model GrammarTopic {
 // ========================================
 
 model GrammarQuestion {
-  id       String @id @default(uuid())
-  question String
-  type     String
-  answer   String
-  options  Json?
+  id          String  @id @default(uuid())
+  question    String
+  type        String
+  answer      String
+  options     Json?
+  explanation String?
 
   grammarId String
   grammar   GrammarTopic @relation(fields: [grammarId], references: [id], onDelete: Cascade)
@@ -181,10 +184,11 @@ model GrammarQuestion {
 // ========================================
 
 model SentenceExercise {
-  id       String @id @default(uuid())
-  question String
-  words    Json
-  answer   String
+  id          String  @id @default(uuid())
+  question    String
+  words       Json
+  answer      String
+  explanation String?
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -228,7 +232,7 @@ model WritingSubmission {
   feedback Json?
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   taskId String
   task   WritingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -252,10 +256,37 @@ model ListeningExercise {
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
+  tasks ListeningTask[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([chapterId])
+}
+
+// ========================================
+// LISTENING TASK
+// ========================================
+
+model ListeningTask {
+  id       String @id @default(uuid())
+  taskNo   Int
+  type     String
+  question String
+
+  options Json?
+  answer  Json
+
+  explanation String?
+
+  listeningExerciseId String
+  listeningExercise   ListeningExercise @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([listeningExerciseId, taskNo])
+  @@index([listeningExerciseId])
 }
 
 // ========================================
@@ -266,7 +297,7 @@ model UserProgress {
   id String @id @default(uuid())
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -294,7 +325,7 @@ model Subscription {
   id String @id @default(uuid())
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   startDate DateTime
   endDate   DateTime
@@ -319,7 +350,7 @@ model Payment {
   id String @id @default(uuid())
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
@@ -337,4 +368,115 @@ model Payment {
 
   @@index([userId])
   @@index([status])
+}
+
+// ========================================
+// BLOG
+// ========================================
+
+model Blog {
+  id         String  @id @default(uuid())
+  title      String
+  slug       String  @unique
+  excerpt    String?
+  content    String
+  coverImage String?
+  published  Boolean @default(false)
+
+  likes BlogLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+}
+
+// ========================================
+// BLOG LIKE
+// ========================================
+
+model BlogLike {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  blogId String
+  blog   Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, blogId])
+  @@index([blogId])
+  @@index([userId])
+}
+
+// ========================================
+// VISA CHECKLIST
+// ========================================
+
+model VisaCategory {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String?
+
+  items VisaChecklistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========================================
+// VISA CHECKLIST ITEM
+// ========================================
+
+model VisaChecklistItem {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  required    Boolean @default(true)
+  order       Int
+
+  categoryId String
+  category   VisaCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+}
+
+// ========================================
+// AUSBILDUNG
+// ========================================
+
+model Ausbildung {
+  id          String @id @default(uuid())
+  name        String @unique
+  slug        String @unique
+  description String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ========================================
+// OUR SERVICES
+// ========================================
+
+model Service {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  description String
+  imageUrl    String?
+  order       Int     @default(0)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([isActive])
 }
