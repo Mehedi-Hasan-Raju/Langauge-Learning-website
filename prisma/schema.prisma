@@ -45,11 +45,15 @@ model User {
   password String
   role     Role   @default(USER)
 
-  progress      UserProgress[]
-  submissions   WritingSubmission[]
-  subscriptions Subscription[]
-  payments      Payment[]
-  blogLikes     BlogLike[]
+  emailVerified Boolean @default(false)
+
+  progress            UserProgress[]
+  submissions         WritingSubmission[]
+  subscriptions       Subscription[]
+  payments            Payment[]
+  blogLikes           BlogLike[]
+  verificationTokens  EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -479,4 +483,40 @@ model Service {
 
   @@index([order])
   @@index([isActive])
+}
+
+// ========================================
+// EMAIL VERIFICATION TOKEN
+// ========================================
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ========================================
+// PASSWORD RESET TOKEN
+// ========================================
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
