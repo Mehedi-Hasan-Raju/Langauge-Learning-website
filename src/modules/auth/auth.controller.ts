@@ -2,6 +2,7 @@ import {Request, Response } from 'express';
 import {registerUser,loginUser, getCurrentUser,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 
+
 export const getMe = async (
   req: AuthRequest,
   res: Response

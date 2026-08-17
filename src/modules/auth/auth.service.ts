@@ -1,36 +1,56 @@
 import bcrypt from 'bcrypt';
 import {prisma} from "../../lib/prisma";
-import {RegisterInput} from "./auth.types";
 import jwt from "jsonwebtoken";
+import { sendVerificationEmail } from "../../lib/email";
+import type { RegisterInput } from "../auth/auth.types";
 
-export const registerUser =  async (data: RegisterInput) => {
-    const {name, email, password} = data;
+export const registerUser = async (data: RegisterInput) => {
+    const { name, email, password } = data;
 
+    // Check existing user
     const existingUser = await prisma.user.findUnique({
         where: {
             email,
         },
     });
-     
+
     if (existingUser) {
-        throw new Error("user already exists with this email")
+        throw new Error("User already exists with this email");
     }
 
-    //hash password
-    const hashedPassword = await bcrypt.hash(password,10);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    //create user
+    // Create user
     const user = await prisma.user.create({
         data: {
             name,
             email,
             password: hashedPassword,
+            emailVerified: false,
         },
     });
 
-    //never return password 
-    const {password : _, ...userWithoutPassword} = user;
-    return userWithoutPassword;
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Code expires in 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Save verification code
+    await prisma.emailVerificationToken.create({
+        data: {
+            token: code,
+            expiresAt,
+            userId: user.id,
+        },
+    });
+
+    // Send verification email
+    await sendVerificationEmail(email, code);
+
+    // Never return password
+    const { password: _, ...userWithoutPassword } = user;
 
     return userWithoutPassword;
 };
