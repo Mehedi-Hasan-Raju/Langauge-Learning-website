@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { login, 
          register,
+         verifyEmailController,
          getMe,
          adminTest, } from "./auth.controller";
 import { authenticate,
@@ -12,5 +13,6 @@ router.post("/register", register);
 router.post("/login", login);
 router.get("/me",authenticate, getMe);
 router.get("/admin",authenticate,authorizeAdmin, adminTest);
+router.post("/verifyEmail", verifyEmailController);
 
 export default router;
