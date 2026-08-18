@@ -1,8 +1,12 @@
 import bcrypt from 'bcrypt';
 import {prisma} from "../../lib/prisma";
 import jwt from "jsonwebtoken";
-import { sendVerificationEmail } from "../../lib/email";
+import { sendVerificationEmail,sendPasswordResetEmail } from "../../lib/email";
 import type { RegisterInput } from "../auth/auth.types";
+
+
+
+
 
 export const registerUser = async (data: RegisterInput) => {
     const { name, email, password } = data;
@@ -185,4 +189,56 @@ export const getCurrentUser = async (userId: string) => {
   const { password: _, ...userWithoutPassword } = user;
 
   return userWithoutPassword;
+};
+
+export const forgotPassword = async (email: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (!user) {
+        throw new Error("No account found with this email");
+    }
+
+    if (!user.emailVerified) {
+        throw new Error("Please verify your email first");
+    }
+
+    // Generate 6 digit reset code
+    const code = Math.floor(
+        100000 + Math.random() * 900000
+    ).toString();
+
+    // Expire after 10 minutes
+    const expiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+    );
+
+    // Delete old reset tokens
+    await prisma.passwordResetToken.deleteMany({
+        where: {
+            userId: user.id,
+        },
+    });
+
+    // Create new reset token
+    await prisma.passwordResetToken.create({
+        data: {
+            token: code,
+            expiresAt,
+            userId: user.id,
+        },
+    });
+
+    // Email reset code
+    await sendPasswordResetEmail(
+        user.email,
+        code
+    );
+
+    return {
+        message: "Password reset code sent to your email",
+    };
 };
