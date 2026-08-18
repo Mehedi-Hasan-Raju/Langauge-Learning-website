@@ -140,6 +140,10 @@ export const loginUser = async (
   if (!isPasswordCorrect) {
     throw new Error("Invalid email or password");
   }
+  // Email verification check
+  if (!user.emailVerified) {
+    throw new Error("Please verify your email first");
+}
   //jwt secret
   const jwtSecret = process.env.JWT_SECRET;
   if(!jwtSecret) {
