@@ -1,5 +1,5 @@
 import {Request, Response } from 'express';
-import {registerUser,loginUser, getCurrentUser,} from './auth.service';
+import {registerUser,loginUser, getCurrentUser,verifyEmail,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 
 
@@ -49,6 +49,30 @@ export const register = async (
         res.status(400).json({
             success: false,
             message: error instanceof Error ? error.message: "Registration Failed",
+        });
+    }
+};
+
+export const verifyEmailController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { email, code } = req.body;
+
+        const result = await verifyEmail(email, code);
+
+        res.status(200).json({
+            success: true,
+            ...result,
+        });
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Email verification failed",
         });
     }
 };

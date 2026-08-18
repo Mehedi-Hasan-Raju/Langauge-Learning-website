@@ -56,6 +56,67 @@ export const registerUser = async (data: RegisterInput) => {
 };
 
 
+export const verifyEmail = async (
+    email: string,
+    code: string
+) => {
+    // Find user
+    const user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // Already verified?
+    if (user.emailVerified) {
+        throw new Error("Email is already verified");
+    }
+
+    // Find verification token
+    const verificationToken =
+        await prisma.emailVerificationToken.findFirst({
+            where: {
+                userId: user.id,
+                token: code,
+            },
+        });
+
+    if (!verificationToken) {
+        throw new Error("Invalid verification code");
+    }
+
+    // Check expiration
+    if (verificationToken.expiresAt < new Date()) {
+        throw new Error("Verification code has expired");
+    }
+
+    // Verify user
+    await prisma.user.update({
+        where: {
+            id: user.id,
+        },
+        data: {
+            emailVerified: true,
+        },
+    });
+
+    // Delete used verification token
+    await prisma.emailVerificationToken.delete({
+        where: {
+            id: verificationToken.id,
+        },
+    });
+
+    return {
+        message: "Email verified successfully",
+    };
+};
+
+
 //login user
 export const loginUser = async (
     email: string,
