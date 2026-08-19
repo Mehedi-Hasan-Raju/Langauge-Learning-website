@@ -242,3 +242,68 @@ export const forgotPassword = async (email: string) => {
         message: "Password reset code sent to your email",
     };
 };
+
+
+export const resetPassword = async (
+    email: string,
+    code: string,
+    newPassword: string
+) => {
+    // Find user
+    const user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // Find reset token
+    const resetToken = await prisma.passwordResetToken.findFirst({
+        where: {
+            userId: user.id,
+            token: code,
+        },
+    });
+
+    if (!resetToken) {
+        throw new Error("Invalid or incorrect reset code");
+    }
+
+    // Check expiration
+    if (resetToken.expiresAt < new Date()) {
+        await prisma.passwordResetToken.delete({
+            where: {
+                id: resetToken.id,
+            },
+        });
+
+        throw new Error("Reset code has expired");
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+        where: {
+            id: user.id,
+        },
+        data: {
+            password: hashedPassword,
+        },
+    });
+
+    // Delete used reset token
+    await prisma.passwordResetToken.delete({
+        where: {
+            id: resetToken.id,
+        },
+    });
+
+    return {
+        message: "Password reset successfully",
+    };
+};

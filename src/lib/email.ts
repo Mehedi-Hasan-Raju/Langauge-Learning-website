@@ -20,21 +20,22 @@ export const sendVerificationEmail = async (
         subject: "Verify your email",
         html: `
             <div style="font-family: Arial, sans-serif;">
-                <h1>Welcome to Deutsch Course!</h1>
-                <h2>Verify your email</h2>
+                 <h1>Welcome to DeutschJourney 🇩🇪</h1>
+                 <p>Your Journey from Learning German to Living in Germany.</p>
+                 <h2>Verify your email</h2>
 
-                <p>Your verification code is:</p>
+                 <p>Your verification code is:</p>
 
-                <h1 style="letter-spacing: 8px;">
+                 <h1 style="letter-spacing: 8px;">
                     ${code}
-                </h1>
+                 </h1>
 
-                <p>This code will expire in 10 minutes.</p>
+                 <p>This code will expire in 10 minutes.</p>
 
-                <p>
+                 <p>
                     If you did not create an account,
                     you can ignore this email.
-                </p>
+                 </p>
             </div>
         `,
     });
@@ -51,6 +52,9 @@ export const sendPasswordResetEmail = async (
         subject: "Reset your password",
         html: `
             <div style="font-family: Arial, sans-serif;">
+             <h1>Welcome to DeutschJourney 🇩🇪</h1>
+             <p>Your Journey from Learning German to Living in Germany.</p>
+
                 <h2>Reset your password</h2>
 
                 <p>

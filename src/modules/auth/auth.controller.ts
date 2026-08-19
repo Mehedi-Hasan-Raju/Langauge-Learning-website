@@ -1,5 +1,5 @@
 import {Request, Response } from 'express';
-import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,} from './auth.service';
+import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,resetPassword,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 
 
@@ -134,6 +134,39 @@ export const forgotPasswordController = async (
                 error instanceof Error
                     ? error.message
                     : "Password reset request failed",
+        });
+    }
+};
+
+
+export const resetPasswordController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const {
+            email,
+            code,
+            newPassword,
+        } = req.body;
+
+        const result = await resetPassword(
+            email,
+            code,
+            newPassword
+        );
+
+        res.status(200).json({
+            success: true,
+            ...result,
+        });
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Password reset failed",
         });
     }
 };
