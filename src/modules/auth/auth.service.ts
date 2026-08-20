@@ -3,8 +3,9 @@ import {prisma} from "../../lib/prisma";
 import jwt from "jsonwebtoken";
 import { sendVerificationEmail,sendPasswordResetEmail } from "../../lib/email";
 import type { RegisterInput } from "../auth/auth.types";
-
-
+import { google } from 'googleapis';
+import { googleOAuth2Client } from '../../lib/google';
+import crypto from "crypto";
 
 
 
@@ -305,5 +306,91 @@ export const resetPassword = async (
 
     return {
         message: "Password reset successfully",
+    };
+};
+
+
+
+
+export const googleLogin = async (code: string) => {
+    // Exchange authorization code for tokens
+    const { tokens } =
+        await googleOAuth2Client.getToken(code);
+
+    googleOAuth2Client.setCredentials(tokens);
+
+    // Get Google user information
+    const oauth2 = google.oauth2({
+        auth: googleOAuth2Client,
+        version: "v2",
+    });
+
+    const { data } = await oauth2.userinfo.get();
+
+    const googleId = data.id;
+    const email = data.email;
+    const name = data.name;
+
+    if (!googleId || !email) {
+        throw new Error(
+            "Unable to get Google account information"
+        );
+    }
+
+    // Check existing user
+    let user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (user) {
+        // Connect Google account if not connected
+        if (!user.googleId) {
+            user = await prisma.user.update({
+                where: {
+                    id: user.id,
+                },
+                data: {
+                    googleId,
+                    emailVerified: true,
+                },
+            });
+        }
+    } else {
+        // Create new Google user
+        const randomPassword = await bcrypt.hash(
+            crypto.randomUUID(),
+            10
+        );
+
+        user = await prisma.user.create({
+            data: {
+                name: name || "Google User",
+                email,
+                password: randomPassword,
+                googleId,
+                emailVerified: true,
+            },
+        });
+    }
+
+    // Generate our existing JWT
+    const token = jwt.sign(
+        {
+            userId: user.id,
+            role: user.role,
+        },
+        process.env.JWT_SECRET!,
+        {
+            expiresIn: "7d",
+        }
+    );
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+        user: userWithoutPassword,
+        token,
     };
 };
