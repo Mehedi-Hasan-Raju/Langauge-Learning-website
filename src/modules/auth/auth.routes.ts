@@ -4,6 +4,8 @@ import { login,
          verifyEmailController,
          forgotPasswordController,
          resetPasswordController,
+         googleAuth,
+         googleCallback,
          getMe,
          adminTest, } from "./auth.controller";
 
@@ -21,6 +23,8 @@ router.get("/admin",authenticate,authorizeAdmin, adminTest);
 router.post("/verifyEmail", verifyEmailController);
 router.post("/forgotPassword", forgotPasswordController);
 router.post("/resetPassword", resetPasswordController);
+router.get("/google", googleAuth);
+router.get("/google/callback", googleCallback);
 
 
 

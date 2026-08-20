@@ -1,7 +1,7 @@
 import {Request, Response } from 'express';
-import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,resetPassword,} from './auth.service';
+import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,resetPassword,googleLogin,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
-
+import { getGoogleAuthUrl } from '../../lib/google';
 
 export const getMe = async (
   req: AuthRequest,
@@ -170,3 +170,57 @@ export const resetPasswordController = async (
         });
     }
 };
+
+
+export const googleAuth = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const authUrl = getGoogleAuthUrl();
+
+        res.redirect(authUrl);
+    } catch (error: any) {
+        res.status(500).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Google authentication failed",
+        });
+    }
+};
+
+
+export const googleCallback = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { code } = req.query;
+
+        if (!code || typeof code !== "string") {
+            return res.status(400).json({
+                success: false,
+                message: "Google authorization code is missing",
+            });
+        }
+
+        const result = await googleLogin(code);
+
+        res.status(200).json({
+            success: true,
+            message: "Google login successful",
+            ...result,
+        });
+    } catch (error: any) {
+        res.status(400).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Google login failed",
+        });
+    }
+};
+
