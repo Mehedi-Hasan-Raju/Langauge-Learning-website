@@ -26,5 +26,4 @@ const startServer = async () => {
 
 
 app.use("/api/auth", authRoutes);
-
 startServer();
