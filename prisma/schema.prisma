@@ -521,3 +521,24 @@ model PasswordResetToken {
   @@index([userId])
   @@index([expiresAt])
 }
+
+// ========================================
+// LOGIN ATTEMPT
+// ========================================
+
+model LoginAttempt {
+  id String @id @default(uuid())
+
+  email          String
+  failedAttempts Int    @default(0)
+
+  lockedUntil DateTime?
+
+  lastAttemptAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email])
+  @@index([lockedUntil])
+}

@@ -6,7 +6,10 @@ import type { RegisterInput } from "../auth/auth.types";
 import { google } from 'googleapis';
 import { googleOAuth2Client } from '../../lib/google';
 import crypto from "crypto";
-
+import {
+    recordFailedLogin,
+    clearFailedLogins,
+} from "../../middlewares/bruteForce.middleware";
 
 
 export const registerUser = async (data: RegisterInput) => {
@@ -134,6 +137,7 @@ export const loginUser = async (
     },
    });
    if(!user) {
+    await recordFailedLogin(email);
     throw new Error("Invalid email or password");
    }
    //compare pass
@@ -143,12 +147,17 @@ export const loginUser = async (
   );
 
   if (!isPasswordCorrect) {
+    await recordFailedLogin(email);
     throw new Error("Invalid email or password");
   }
   // Email verification check
   if (!user.emailVerified) {
     throw new Error("Please verify your email first");
 }
+
+// Clear failed login attempts after successful authentication
+await clearFailedLogins(email);
+
   //jwt secret
   const jwtSecret = process.env.JWT_SECRET;
   if(!jwtSecret) {

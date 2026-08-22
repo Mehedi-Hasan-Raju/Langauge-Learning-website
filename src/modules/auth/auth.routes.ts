@@ -13,11 +13,13 @@ import { login,
 import { authenticate,
          authorizeAdmin } from "../../middlewares/auth.middleware";
 import { authRateLimiter } from "../../middlewares/rateLimit.middleware";
-
+import {
+    bruteForceProtection,
+} from "../../middlewares/bruteForce.middleware";
 const router = Router();
 
 router.post("/register", authRateLimiter, register);
-router.post("/login", authRateLimiter, login);
+router.post("/login", authRateLimiter,bruteForceProtection, login);
 router.get("/me",authenticate, getMe);
 router.get("/admin",authenticate,authorizeAdmin, adminTest);
 router.post("/verifyEmail", authRateLimiter, verifyEmailController);
