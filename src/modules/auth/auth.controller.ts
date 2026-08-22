@@ -2,6 +2,9 @@ import {Request, Response } from 'express';
 import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,resetPassword,googleLogin,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 import { getGoogleAuthUrl } from '../../lib/google';
+import { registerSchema } from "../../validations/auth.validation";
+import { loginSchema } from "../../validations/auth.validation";
+import { ZodError } from "zod";
 
 export const getMe = async (
   req: AuthRequest,
@@ -39,18 +42,34 @@ export const register = async (
     res: Response
 ) => {
     try {
-        const user = await registerUser(req.body);
+        const data = registerSchema.parse(req.body);
+
+        const user = await registerUser(data);
         res.status(201).json({
             success: true,
             message: "Registration Successful",
             user,
         });
     }catch (error: any) {
-        res.status(400).json({
+    if (error instanceof ZodError) {
+        return res.status(400).json({
             success: false,
-            message: error instanceof Error ? error.message: "Registration Failed",
+            message: "Validation failed",
+            errors: error.issues.map((issue) => ({
+                field: issue.path[0],
+                message: issue.message,
+            })),
         });
     }
+
+    return res.status(400).json({
+        success: false,
+        message:
+            error instanceof Error
+                ? error.message
+                : "Registration Failed",
+    });
+}
 };
 
 export const verifyEmailController = async (
@@ -82,24 +101,36 @@ export const login = async (
   res: Response
 ) => {
   try {
-    const { email, password } = req.body;
+    const data = loginSchema.parse(req.body);
+    
 
-    const result = await loginUser(email, password);
+    const result = await loginUser(data.email, data.password);
 
     res.status(200).json({
       success: true,
       message: "Login successful",
       ...result,
     });
-  } catch (error) {
-    res.status(401).json({
-      success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Login failed",
+  }catch (error: any) {
+    if (error instanceof ZodError) {
+        return res.status(400).json({
+            success: false,
+            message: "Validation failed",
+            errors: error.issues.map((issue) => ({
+                field: issue.path[0],
+                message: issue.message,
+            })),
+        });
+    }
+
+    return res.status(400).json({
+        success: false,
+        message:
+            error instanceof Error
+                ? error.message
+                : "Login Failed",
     });
-  }
+}
 }; 
 
 export const adminTest = async (
