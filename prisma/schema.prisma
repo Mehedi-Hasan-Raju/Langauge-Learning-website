@@ -56,8 +56,14 @@ model User {
   verificationTokens  EmailVerificationToken[]
   passwordResetTokens PasswordResetToken[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userProfile      UserProfile?
+  skillProgresses  SkillProgress[]
+  dailyActivities  DailyActivity[]
+  studySessions    StudySession[]
+  activityRecords  ActivityRecord[]
+  userAchievements UserAchievement[]
 }
 
 // ========================================
@@ -541,4 +547,131 @@ model LoginAttempt {
 
   @@unique([email])
   @@index([lockedUntil])
+}
+
+// ========================================
+// USER PROFILE
+// ========================================
+
+enum LearningSkill {
+  GRAMMAR
+  SCHREIBEN
+  LISTENING
+  VOCABULARY
+  SENTENCE_BUILDING
+  SPRECHEN
+}
+
+model UserProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  avatar       String?
+  currentLevel String?
+  targetLevel  String?
+
+  currentStreak  Int       @default(0)
+  longestStreak  Int       @default(0)
+  lastActiveDate DateTime?
+
+  totalStudyMinutes Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SkillProgress {
+  id     String        @id @default(uuid())
+  userId String
+  skill  LearningSkill
+
+  completedTasks Int @default(0)
+  totalTasks     Int @default(0)
+
+  currentScore  Float @default(0)
+  previousScore Float @default(0)
+
+  totalStudyMinutes Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skill])
+  @@index([userId])
+}
+
+model DailyActivity {
+  id     String   @id @default(uuid())
+  userId String
+  date   DateTime
+
+  completedTasks Int @default(0)
+  studyMinutes   Int @default(0)
+
+  grammarCompleted    Int @default(0)
+  schreibenCompleted  Int @default(0)
+  listeningCompleted  Int @default(0)
+  vocabularyCompleted Int @default(0)
+  sentenceCompleted   Int @default(0)
+  sprechenCompleted   Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model StudySession {
+  id     String @id @default(uuid())
+  userId String
+
+  skill           LearningSkill?
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationMinutes Int            @default(0)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+model ActivityRecord {
+  id     String @id @default(uuid())
+  userId String
+
+  skill        LearningSkill
+  activityType String
+  referenceId  String?
+
+  score           Float?
+  durationMinutes Int    @default(0)
+
+  completedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
+  @@index([userId, skill])
+}
+
+model UserAchievement {
+  id             String @id @default(uuid())
+  userId         String
+  achievementKey String
+
+  unlockedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementKey])
+  @@index([userId])
 }
