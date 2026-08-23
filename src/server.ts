@@ -2,7 +2,7 @@ import app from "./app";
 import { env } from "./config/env";
 import { prisma } from "./lib/prisma";
 import authRoutes from "./modules/auth/auth.routes";
-
+import userRoutes from "./modules/user/route/user.route";
 const startServer = async () => {
   try {
     await prisma.$connect();
@@ -26,4 +26,5 @@ const startServer = async () => {
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 startServer();
