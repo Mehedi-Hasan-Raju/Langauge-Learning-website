@@ -62,17 +62,19 @@ export const endStudySession = async (
         },
     });
 
-    // Update total study time
-    await prisma.userProfile.update({
-        where: {
-            userId,
+ await prisma.userProfile.upsert({
+    where: {
+        userId,
+    },
+    create: {
+        userId,
+        totalStudyMinutes: durationMinutes,
+    },
+    update: {
+        totalStudyMinutes: {
+            increment: durationMinutes,
         },
-        data: {
-            totalStudyMinutes: {
-                increment: durationMinutes,
-            },
-        },
-    });
-
+    },
+});
     return updatedSession;
 };

@@ -125,6 +125,59 @@ export const verifyEmail = async (
 };
 
 
+export const resendVerificationCode = async (email: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            email,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (user.emailVerified) {
+        throw new Error("Email is already verified");
+    }
+
+    // Generate 6 digit verification code
+    const code = Math.floor(
+        100000 + Math.random() * 900000
+    ).toString();
+
+    // Expire after 10 minutes
+    const expiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+    );
+
+    // Remove old verification token
+    await prisma.emailVerificationToken.deleteMany({
+        where: {
+            userId: user.id,
+        },
+    });
+
+    // Create new verification token
+    await prisma.emailVerificationToken.create({
+        data: {
+            userId: user.id,
+            token: code,
+            expiresAt,
+        },
+    });
+
+    // Send email
+    await sendVerificationEmail(
+        user.email,
+        code
+    );
+
+    return {
+        email: user.email,
+    };
+};
+
+
 //login user
 export const loginUser = async (
     email: string,

@@ -1,5 +1,5 @@
 import {Request, Response } from 'express';
-import {registerUser,loginUser, getCurrentUser,verifyEmail, forgotPassword,resetPassword,googleLogin,} from './auth.service';
+import {registerUser,loginUser, getCurrentUser,verifyEmail,resendVerificationCode, forgotPassword,resetPassword,googleLogin,} from './auth.service';
 import { AuthRequest } from "../../middlewares/auth.middleware";
 import { getGoogleAuthUrl } from '../../lib/google';
 import { registerSchema } from "../../validations/auth.validation";
@@ -92,6 +92,42 @@ export const verifyEmailController = async (
                 error instanceof Error
                     ? error.message
                     : "Email verification failed",
+        });
+    }
+};
+
+
+export const resendVerification = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required",
+            });
+        }
+
+        const result = await resendVerificationCode(
+            email
+        );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Verification code sent successfully",
+            email: result.email,
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to resend verification code",
         });
     }
 };

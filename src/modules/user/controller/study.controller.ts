@@ -40,6 +40,7 @@ export const startStudy = async (
     }
 };
 
+
 export const endStudy = async (
     req: AuthRequest,
     res: Response
@@ -54,9 +55,16 @@ export const endStudy = async (
 
         const { sessionId } = req.params;
 
+        if (!sessionId || Array.isArray(sessionId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid session ID",
+            });
+        }
+
         const session = await endStudySession(
             req.user.userId,
-            sessionId as string                 //////////////ekhane err asce trpr es string dea rakhci//////
+            sessionId
         );
 
         return res.status(200).json({
