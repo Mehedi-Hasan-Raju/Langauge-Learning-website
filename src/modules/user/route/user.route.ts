@@ -4,6 +4,11 @@ import {
     getProfile,
     updateProfile,
 } from "../controller/user.controller";
+import {
+    startStudy,
+    endStudy,
+} from "../controller/study.controller";
+
 
 const router = Router();
 
@@ -17,6 +22,18 @@ router.patch(
     "/profile",
     authenticate,
     updateProfile
+);
+
+router.post(
+    "/study/start",
+    authenticate,
+    startStudy
+);
+
+router.post(
+    "/study/end/:sessionId",
+    authenticate,
+    endStudy
 );
 
 export default router;
