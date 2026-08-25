@@ -31,7 +31,7 @@ export const updateMyProfile = async (
         targetLevel?: string;
     }
 ) => {
-    const user = await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: {
             id: userId,
         },
@@ -41,33 +41,8 @@ export const updateMyProfile = async (
         throw new Error("User not found");
     }
 
-    const updatedUser = await prisma.user.update({
-        where: {
-            id: userId,
-        },
-        data: {
-            ...(data.name !== undefined && {
-                name: data.name,
-            }),
-            ...(data.avatar !== undefined && {
-                profile: {
-                    upsert: {
-                        create: {
-                            avatar: data.avatar,
-                        },
-                        update: {
-                            avatar: data.avatar,
-                        },
-                    },
-                },
-            }),
-        },
-        include: {
-            userProfile: true,
-        },
-    });
-
     if (
+        data.avatar !== undefined ||
         data.currentLevel !== undefined ||
         data.targetLevel !== undefined
     ) {
@@ -77,10 +52,14 @@ export const updateMyProfile = async (
             },
             create: {
                 userId,
+                avatar: data.avatar,
                 currentLevel: data.currentLevel,
                 targetLevel: data.targetLevel,
             },
             update: {
+                ...(data.avatar !== undefined && {
+                    avatar: data.avatar,
+                    }),
                 ...(data.currentLevel !== undefined && {
                     currentLevel: data.currentLevel,
                 }),

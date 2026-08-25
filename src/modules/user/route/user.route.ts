@@ -7,28 +7,14 @@ import {completeDailyActivity,} from "../controller/daily.controller";
 
 const router = Router();
 
-router.get(
-    "/profile",
-    authenticate,
-    getProfile
-);
+router.get( "/profile",authenticate, getProfile);
 
-router.patch(
-    "/profile",
-    authenticate,
-    updateProfile
-);
+router.patch( "/profile", authenticate, updateProfile);
 
-router.post(
-    "/study/start",
-    authenticate,
-    startStudy
-);
+router.post( "/study/start",authenticate, startStudy);
 
-router.post(
-    "/study/end/:sessionId",
-    authenticate,
-    endStudy
-);
+router.post( "/study/end/:sessionId", authenticate, endStudy);
+
+router.post( "/activity/complete",authenticate, completeDailyActivity);
 
 export default router;
