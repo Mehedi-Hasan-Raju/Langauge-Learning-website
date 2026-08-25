@@ -3,6 +3,7 @@ import { AuthRequest } from "../../../middlewares/auth.middleware";
 import {
     startStudySession,
     endStudySession,
+    getStudyStatistics,
 } from "../service/study.service";
 
 export const startStudy = async (
@@ -79,6 +80,40 @@ export const endStudy = async (
                 error instanceof Error
                     ? error.message
                     : "Failed to end study session",
+        });
+    }
+};
+
+
+
+export const getStudyStats = async (
+    req: AuthRequest,
+    res: Response
+) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication required",
+            });
+        }
+
+        const statistics = await getStudyStatistics(
+            req.user.userId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Study statistics fetched successfully",
+            data: statistics,
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            success: false,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Failed to fetch study statistics",
         });
     }
 };
