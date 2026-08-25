@@ -1,13 +1,8 @@
 import { Router } from "express";
 import { authenticate } from "../../../middlewares/auth.middleware";
-import {
-    getProfile,
-    updateProfile,
-} from "../controller/user.controller";
-import {
-    startStudy,
-    endStudy,
-} from "../controller/study.controller";
+import { getProfile,updateProfile,} from "../controller/user.controller";
+import {startStudy, endStudy,} from "../controller/study.controller";
+import {completeDailyActivity,} from "../controller/daily.controller";
 
 
 const router = Router();
