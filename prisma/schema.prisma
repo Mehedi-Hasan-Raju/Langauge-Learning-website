@@ -39,17 +39,18 @@ enum PaymentStatus {
 // ========================================
 
 model User {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
-  email    String @unique
-  password String
-  role     Role   @default(USER)
+  email    String  @unique
+  password String?
+  role     Role    @default(USER)
 
   emailVerified Boolean @default(false)
   googleId      String? @unique
 
   progress            UserProgress[]
-  submissions         WritingSubmission[]
+  writingSubmissions  WritingSubmission[]
+  speakingSubmissions SpeakingSubmission[]
   subscriptions       Subscription[]
   payments            Payment[]
   blogLikes           BlogLike[]
@@ -109,6 +110,7 @@ model Chapter {
   id         String     @id @default(uuid())
   title      String
   chapterNo  Int
+  sectionNo  Int        @default(0)
   accessType AccessType @default(FREE)
 
   bookId String
@@ -119,12 +121,13 @@ model Chapter {
   sentenceExercises  SentenceExercise[]
   writingTasks       WritingTask[]
   listeningExercises ListeningExercise[]
+  speakingPractices  SpeakingPractice[]
   progress           UserProgress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([bookId, chapterNo])
+  @@unique([bookId, chapterNo, sectionNo])
   @@index([bookId])
 }
 
@@ -143,10 +146,41 @@ model Vocabulary {
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
+  exercises VocabularyExercise[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([chapterId])
+}
+
+// ========================================
+// VOCABULARY EXERCISE
+// ========================================
+
+enum VocabularyExerciseType {
+  GERMAN_TO_ENGLISH
+  ENGLISH_TO_GERMAN
+  MULTIPLE_CHOICE
+}
+
+model VocabularyExercise {
+  id       String                 @id @default(uuid())
+  question String
+  type     VocabularyExerciseType
+
+  options Json?
+  answer  String
+
+  explanation String?
+
+  vocabularyId String
+  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vocabularyId])
 }
 
 // ========================================
@@ -174,10 +208,15 @@ model GrammarTopic {
 // GRAMMAR QUESTION
 // ========================================
 
+enum GrammarQuestionType {
+  MULTIPLE_CHOICE
+  FILL_IN_THE_GAP
+}
+
 model GrammarQuestion {
-  id          String  @id @default(uuid())
+  id          String              @id @default(uuid())
   question    String
-  type        String
+  type        GrammarQuestionType
   answer      String
   options     Json?
   explanation String?
@@ -186,6 +225,7 @@ model GrammarQuestion {
   grammar   GrammarTopic @relation(fields: [grammarId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([grammarId])
 }
@@ -196,6 +236,7 @@ model GrammarQuestion {
 
 model SentenceExercise {
   id          String  @id @default(uuid())
+  taskNo      Int
   question    String
   words       Json
   answer      String
@@ -207,6 +248,7 @@ model SentenceExercise {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([chapterId, taskNo])
   @@index([chapterId])
 }
 
@@ -214,12 +256,20 @@ model SentenceExercise {
 // SCHREIBEN TASK
 // ========================================
 
+enum WritingTaskType {
+  FILL_IN_THE_GAP
+  EMAIL
+  SHORT_MESSAGE
+}
+
 model WritingTask {
-  id          String @id @default(uuid())
+  id          String          @id @default(uuid())
   title       String
   instruction String
-  minWords    Int?
-  maxWords    Int?
+  type        WritingTaskType
+
+  minWords Int?
+  maxWords Int?
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -237,8 +287,9 @@ model WritingTask {
 // ========================================
 
 model WritingSubmission {
-  id       String @id @default(uuid())
-  answer   String
+  id     String @id @default(uuid())
+  answer String
+
   score    Float?
   feedback Json?
 
@@ -252,6 +303,7 @@ model WritingSubmission {
 
   @@index([userId])
   @@index([taskId])
+  @@index([userId, taskId])
 }
 
 // ========================================
@@ -279,10 +331,16 @@ model ListeningExercise {
 // LISTENING TASK
 // ========================================
 
+enum ListeningTaskType {
+  MULTIPLE_CHOICE
+  FILL_IN_THE_GAP
+  LISTEN_AND_WRITE
+}
+
 model ListeningTask {
-  id       String @id @default(uuid())
+  id       String            @id @default(uuid())
   taskNo   Int
-  type     String
+  type     ListeningTaskType
   question String
 
   options Json?
@@ -291,13 +349,72 @@ model ListeningTask {
   explanation String?
 
   listeningExerciseId String
-  listeningExercise   ListeningExercise @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
+
+  listeningExercise ListeningExercise @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([listeningExerciseId, taskNo])
   @@index([listeningExerciseId])
+}
+
+// ========================================
+// SPRECHEN / SPEAKING PRACTICE
+// ========================================
+
+enum SpeakingPracticeType {
+  TOPIC
+  QUESTION
+  AI_CONVERSATION
+}
+
+model SpeakingPractice {
+  id          String               @id @default(uuid())
+  title       String
+  instruction String
+  prompt      String?
+  type        SpeakingPracticeType
+
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  submissions SpeakingSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+  @@index([chapterId, type])
+}
+
+// ========================================
+// SPEAKING SUBMISSION
+// ========================================
+
+model SpeakingSubmission {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  practiceId String
+  practice   SpeakingPractice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  audioUrl   String?
+  transcript String?
+
+  score Float?
+
+  feedback           Json?
+  grammarErrors      Json?
+  vocabularyFeedback Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([practiceId])
+  @@index([userId, practiceId])
 }
 
 // ========================================
@@ -318,6 +435,7 @@ model UserProgress {
   sentenceProgress   Float @default(0)
   writingProgress    Float @default(0)
   listeningProgress  Float @default(0)
+  speakingProgress   Float @default(0)
   overallProgress    Float @default(0)
 
   createdAt DateTime @default(now())
