@@ -3,6 +3,7 @@ import { authenticate } from "../../../middlewares/auth.middleware";
 import { getProfile,updateProfile,} from "../controller/user.controller";
 import {startStudy, endStudy, getStudyStats,} from "../controller/study.controller";
 import {completeDailyActivity,} from "../controller/daily.controller";
+import { getMySkillProgressController,} from "../controller/skill-progress.controller";
 
 
 const router = Router();
@@ -18,6 +19,8 @@ router.post( "/study/end/:sessionId", authenticate, endStudy);
 router.get("/study/statistics", authenticate, getStudyStats);
 
 router.post( "/activity/complete",authenticate, completeDailyActivity);
+
+router.get( "/skill-progress",authenticate, getMySkillProgressController);
 
 
 export default router;
