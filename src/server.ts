@@ -4,6 +4,8 @@ import { prisma } from "./lib/prisma";
 import authRoutes from "./modules/auth/auth.routes";
 import userRoutes from "./modules/user/route/user.route";
 import levelRoutes from "./modules/learning/route/level.route";
+import bookRoutes from "./modules/learning/route/book.route";
+import chapterRoutes from "./modules/learning/route/chapter.route";
 
 
 
@@ -32,7 +34,8 @@ const startServer = async () => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/learning/levels", levelRoutes);
-
+app.use("/api/learning/books", bookRoutes);
+app.use("/api/learning/chapters",chapterRoutes);
 
 
 startServer();
