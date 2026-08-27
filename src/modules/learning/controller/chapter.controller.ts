@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AuthRequest } from "../../../middlewares/auth.middleware";
 
 import {
   createChapter,
@@ -90,10 +91,17 @@ export const getChaptersByBookController = async (
 };
 
 export const getChapterByIdController = async (
-  req: Request,
+  req: AuthRequest,
   res: Response
 ) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     const { id } = req.params;
 
     if (typeof id !== "string") {
@@ -103,19 +111,47 @@ export const getChapterByIdController = async (
       });
     }
 
-    const chapter = await getChapterById(id);
+    const chapter = await getChapterById(
+      id,
+      req.user.userId,
+      req.user.role
+    );
 
     return res.status(200).json({
       success: true,
       chapter,
     });
   } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch chapter";
+
+    if (
+      message ===
+      "Premium subscription is required to access this chapter"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message,
+        code: "PREMIUM_REQUIRED",
+      });
+    }
+
+    if (
+      message ===
+      "Complete the previous chapter first"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message,
+        code: "PREVIOUS_CHAPTER_INCOMPLETE",
+      });
+    }
+
     return res.status(404).json({
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Chapter not found",
+      message,
     });
   }
 };

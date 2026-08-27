@@ -1,4 +1,6 @@
 import { prisma } from "../../../lib/prisma";
+import {checkChapterAccess,} from "./chapter-access.service";
+
 
 type AccessType = "FREE" | "PREMIUM";
 
@@ -75,8 +77,35 @@ export const getChaptersByBook = async (
 };
 
 export const getChapterById = async (
-  id: string
+  id: string,
+  userId: string,
+  userRole: "USER" | "ADMIN"
 ) => {
+  const access = await checkChapterAccess(
+    id,
+    userId,
+    userRole
+  );
+
+  if (!access.allowed) {
+    if (access.reason === "PREMIUM_REQUIRED") {
+      throw new Error(
+        "Premium subscription is required to access this chapter"
+      );
+    }
+
+    if (
+      access.reason ===
+      "PREVIOUS_CHAPTER_INCOMPLETE"
+    ) {
+      throw new Error(
+        "Complete the previous chapter first"
+      );
+    }
+
+    throw new Error("You do not have access to this chapter");
+  }
+
   const chapter = await prisma.chapter.findUnique({
     where: {
       id,
@@ -87,19 +116,29 @@ export const getChapterById = async (
           level: true,
         },
       },
-      vocabularies: true,
+
+      vocabularies: {
+        include: {
+          exercises: true,
+        },
+      },
+
       grammarTopics: {
         include: {
           questions: true,
         },
       },
+
       sentenceExercises: true,
+
       writingTasks: true,
+
       listeningExercises: {
         include: {
           tasks: true,
         },
       },
+
       speakingPractices: true,
     },
   });
