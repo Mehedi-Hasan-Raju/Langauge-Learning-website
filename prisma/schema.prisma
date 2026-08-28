@@ -188,10 +188,13 @@ model VocabularyExercise {
 // ========================================
 
 model GrammarTopic {
-  id          String  @id @default(uuid())
-  title       String
-  explanation String
-  videoUrl    String?
+  id            String  @id @default(uuid())
+  title         String
+  explanation   String
+  examples      Json?
+  rules         Json?
+  commonMistakes Json?
+  videoUrl      String?
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -215,6 +218,7 @@ enum GrammarQuestionType {
 
 model GrammarQuestion {
   id          String              @id @default(uuid())
+  taskNo      Int
   question    String
   type        GrammarQuestionType
   answer      String
@@ -227,6 +231,7 @@ model GrammarQuestion {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([grammarId, taskNo])
   @@index([grammarId])
 }
 
