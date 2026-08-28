@@ -6,7 +6,7 @@ import userRoutes from "./modules/user/route/user.route";
 import levelRoutes from "./modules/learning/route/level.route";
 import bookRoutes from "./modules/learning/route/book.route";
 import chapterRoutes from "./modules/learning/route/chapter.route";
-
+import grammarRoutes from "./modules/learning/route/grammar.route";
 
 
 const startServer = async () => {
@@ -36,6 +36,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/learning/levels", levelRoutes);
 app.use("/api/learning/books", bookRoutes);
 app.use("/api/learning/chapters",chapterRoutes);
-
+app.use("/api/learning/grammar", grammarRoutes);
 
 startServer();
