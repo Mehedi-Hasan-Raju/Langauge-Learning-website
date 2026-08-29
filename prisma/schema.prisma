@@ -49,6 +49,7 @@ model User {
   googleId      String? @unique
 
   progress            UserProgress[]
+  grammarSubmissions  GrammarSubmission[]
   writingSubmissions  WritingSubmission[]
   speakingSubmissions SpeakingSubmission[]
   subscriptions       Subscription[]
@@ -188,13 +189,13 @@ model VocabularyExercise {
 // ========================================
 
 model GrammarTopic {
-  id            String  @id @default(uuid())
-  title         String
-  explanation   String
-  examples      Json?
-  rules         Json?
+  id             String  @id @default(uuid())
+  title          String
+  explanation    String
+  examples       Json?
+  rules          Json?
   commonMistakes Json?
-  videoUrl      String?
+  videoUrl       String?
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -225,14 +226,38 @@ model GrammarQuestion {
   options     Json?
   explanation String?
 
-  grammarId String
-  grammar   GrammarTopic @relation(fields: [grammarId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  grammarId   String
+  grammar     GrammarTopic        @relation(fields: [grammarId], references: [id], onDelete: Cascade)
+  submissions GrammarSubmission[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   @@unique([grammarId, taskNo])
   @@index([grammarId])
+}
+
+//==================================
+//Grammer Submission
+//==================================
+
+model GrammarSubmission {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  questionId String
+  question   GrammarQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  userAnswer String
+  isCorrect  Boolean
+  score      Float
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([questionId])
+  @@index([userId, questionId])
 }
 
 // ========================================
