@@ -11,6 +11,7 @@ import {
   getGrammarTopicByIdController,
   updateGrammarTopicController,
   deleteGrammarTopicController,
+  
 } from "../controller/grammar.controller";
 
 import {
@@ -18,6 +19,7 @@ import {
   getGrammarQuestionByIdController,
   updateGrammarQuestionController,
   deleteGrammarQuestionController,
+  submitGrammarAnswerController,
 } from "../controller/grammar-question.controller";
 
 const router = Router();
@@ -94,4 +96,12 @@ router.delete(
   deleteGrammarQuestionController
 );
 
+//========================
+//answer submit
+//========================
+router.post(
+  "/question/:questionId/answer",
+  authenticate,
+  submitGrammarAnswerController
+);
 export default router;

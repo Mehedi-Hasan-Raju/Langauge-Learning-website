@@ -4,7 +4,10 @@ import {
   getGrammarQuestionById,
   updateGrammarQuestion,
   deleteGrammarQuestion,
+  submitGrammarAnswer,
 } from "../service/grammar-question.service";
+import { AuthRequest } from "../../../middlewares/auth.middleware";
+
 
 export const createGrammarQuestionController =
   async (req: Request, res: Response) => {
@@ -157,3 +160,61 @@ export const deleteGrammarQuestionController =
       });
     }
   };
+
+
+  export const submitGrammarAnswerController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { questionId } = req.params;
+    const { answer } = req.body;
+
+    if (typeof questionId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid question ID",
+      });
+    }
+
+    if (typeof answer !== "string" || !answer.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Answer is required",
+      });
+    }
+
+    const result = await submitGrammarAnswer(
+      req.user.userId,
+      questionId,
+      answer
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: result.correct
+        ? "Correct answer"
+        : "Incorrect answer",
+      correct: result.correct,
+      score: result.score,
+      correctAnswer: result.correctAnswer,
+      explanation: result.explanation,
+      submissionId: result.submission.id,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to submit answer",
+    });
+  }
+};

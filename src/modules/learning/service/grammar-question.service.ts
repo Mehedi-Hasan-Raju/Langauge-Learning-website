@@ -154,3 +154,51 @@ export const deleteGrammarQuestion = async (
     },
   });
 };
+
+
+export const submitGrammarAnswer = async (
+  userId: string,
+  questionId: string,
+  userAnswer: string
+) => {
+  const question = await prisma.grammarQuestion.findUnique({
+    where: {
+      id: questionId,
+    },
+  });
+
+  if (!question) {
+    throw new Error("Grammar question not found");
+  }
+
+  const normalizedUserAnswer = userAnswer
+    .trim()
+    .toLowerCase();
+
+  const normalizedCorrectAnswer = question.answer
+    .trim()
+    .toLowerCase();
+
+  const isCorrect =
+    normalizedUserAnswer === normalizedCorrectAnswer;
+
+  const score = isCorrect ? 100 : 0;
+
+  const submission = await prisma.grammarSubmission.create({
+    data: {
+      userId,
+      questionId,
+      userAnswer: userAnswer.trim(),
+      isCorrect,
+      score,
+    },
+  });
+
+  return {
+    submission,
+    correct: isCorrect,
+    score,
+    correctAnswer: question.answer,
+    explanation: question.explanation,
+  };
+};
