@@ -165,6 +165,13 @@ export const submitGrammarAnswer = async (
     where: {
       id: questionId,
     },
+    include: {
+      grammar: {
+        select: {
+          chapterId: true,
+        },
+      },
+    },
   });
 
   if (!question) {
@@ -184,15 +191,227 @@ export const submitGrammarAnswer = async (
 
   const score = isCorrect ? 100 : 0;
 
-  const submission = await prisma.grammarSubmission.create({
-    data: {
-      userId,
-      questionId,
-      userAnswer: userAnswer.trim(),
-      isCorrect,
-      score,
+  // Check if this user already answered this question
+  const existingSubmission =
+    await prisma.grammarSubmission.findFirst({
+      where: {
+        userId,
+        questionId,
+      },
+    });
+
+  let submission;
+
+  if (existingSubmission) {
+    // Update existing submission
+    submission = await prisma.grammarSubmission.update({
+      where: {
+        id: existingSubmission.id,
+      },
+      data: {
+        userAnswer: userAnswer.trim(),
+        isCorrect,
+        score,
+      },
+    });
+  } else {
+    // Create first submission
+    submission = await prisma.grammarSubmission.create({
+      data: {
+        userId,
+        questionId,
+        userAnswer: userAnswer.trim(),
+        isCorrect,
+        score,
+      },
+    });
+  }
+
+  // ==============================
+  // GET ALL GRAMMAR QUESTIONS
+  // FOR THIS CHAPTER
+  // ==============================
+
+  const totalQuestions =
+    await prisma.grammarQuestion.count({
+      where: {
+        grammar: {
+          chapterId: question.grammar.chapterId,
+        },
+      },
+    });
+
+  // ==============================
+  // GET USER'S ANSWERED QUESTIONS
+  // ==============================
+
+  const completedQuestions =
+    await prisma.grammarSubmission.count({
+      where: {
+        userId,
+        question: {
+          grammar: {
+            chapterId: question.grammar.chapterId,
+          },
+        },
+      },
+    });
+
+  // ==============================
+  // GRAMMAR COMPLETION PROGRESS
+  // ==============================
+
+  const grammarProgress =
+    totalQuestions > 0
+      ? Number(
+          (
+            (completedQuestions / totalQuestions) *
+            100
+          ).toFixed(2)
+        )
+      : 0;
+
+  // ==============================
+  // GRAMMAR ACCURACY / SCORE
+  // ==============================
+
+  const submissions =
+    await prisma.grammarSubmission.findMany({
+      where: {
+        userId,
+        question: {
+          grammar: {
+            chapterId: question.grammar.chapterId,
+          },
+        },
+      },
+      select: {
+        score: true,
+      },
+    });
+
+  const currentScore =
+    submissions.length > 0
+      ? Number(
+          (
+            submissions.reduce(
+              (sum, item) => sum + item.score,
+              0
+            ) / submissions.length
+          ).toFixed(2)
+        )
+      : 0;
+
+  // ==============================
+  // UPDATE SKILL PROGRESS
+  // ==============================
+
+ const existingSkillProgress =
+  await prisma.skillProgress.findUnique({
+    where: {
+      userId_skill: {
+        userId,
+        skill: "GRAMMAR",
+      },
     },
   });
+
+await prisma.skillProgress.upsert({
+  where: {
+    userId_skill: {
+      userId,
+      skill: "GRAMMAR",
+    },
+  },
+  create: {
+    userId,
+    skill: "GRAMMAR",
+    completedTasks: completedQuestions,
+    totalTasks: totalQuestions,
+    currentScore,
+    previousScore: 0,
+  },
+  update: {
+    completedTasks: completedQuestions,
+    totalTasks: totalQuestions,
+    previousScore:
+      existingSkillProgress?.currentScore ?? 0,
+    currentScore,
+  },
+});
+
+  // ==============================
+  // GET / CREATE CHAPTER PROGRESS
+  // ==============================
+
+  const existingChapterProgress =
+    await prisma.userProgress.findUnique({
+      where: {
+        userId_chapterId: {
+          userId,
+          chapterId: question.grammar.chapterId,
+        },
+      },
+    });
+
+  const grammarChapterProgress = grammarProgress;
+
+  // Other skills remain unchanged
+  const vocabularyProgress =
+    existingChapterProgress?.vocabularyProgress ?? 0;
+
+  const listeningProgress =
+    existingChapterProgress?.listeningProgress ?? 0;
+
+  const writingProgress =
+    existingChapterProgress?.writingProgress ?? 0;
+
+  const sentenceProgress =
+    existingChapterProgress?.sentenceProgress ?? 0;
+
+  // Sprechen is intentionally excluded
+  const overallProgress =
+    (
+      grammarChapterProgress +
+      vocabularyProgress +
+      listeningProgress +
+      writingProgress +
+      sentenceProgress
+    ) / 5;
+
+  // ==============================
+  // UPDATE CHAPTER PROGRESS
+  // ==============================
+
+  const chapterProgress =
+    await prisma.userProgress.upsert({
+      where: {
+        userId_chapterId: {
+          userId,
+          chapterId: question.grammar.chapterId,
+        },
+      },
+      create: {
+        userId,
+        chapterId: question.grammar.chapterId,
+        grammarProgress: grammarChapterProgress,
+        vocabularyProgress: 0,
+        listeningProgress: 0,
+        writingProgress: 0,
+        sentenceProgress: 0,
+        speakingProgress: 0,
+        overallProgress: Number(
+          overallProgress.toFixed(2)
+        ),
+      },
+      update: {
+        grammarProgress:
+          grammarChapterProgress,
+        overallProgress: Number(
+          overallProgress.toFixed(2)
+        ),
+      },
+    });
 
   return {
     submission,
@@ -200,5 +419,11 @@ export const submitGrammarAnswer = async (
     score,
     correctAnswer: question.answer,
     explanation: question.explanation,
+
+    progress: {
+      grammarProgress,
+      overallProgress:
+        chapterProgress.overallProgress,
+    },
   };
 };
