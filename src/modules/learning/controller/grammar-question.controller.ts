@@ -207,6 +207,7 @@ export const deleteGrammarQuestionController =
       correctAnswer: result.correctAnswer,
       explanation: result.explanation,
       submissionId: result.submission.id,
+      progress: result.progress,
     });
   } catch (error) {
     return res.status(400).json({
@@ -218,3 +219,4 @@ export const deleteGrammarQuestionController =
     });
   }
 };
+
