@@ -5,7 +5,7 @@ import {
   getGrammarTopicById,
   updateGrammarTopic,
   deleteGrammarTopic,
-} from "../service/grammar.service";
+} from "../../service/grammer/grammar.service";
 
 export const createGrammarTopicController = async (
   req: Request,

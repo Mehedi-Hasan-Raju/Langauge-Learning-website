@@ -3,7 +3,7 @@ import { Router } from "express";
 import {
   authenticate,
   authorizeAdmin,
-} from "../../../middlewares/auth.middleware";
+} from "../../../../middlewares/auth.middleware";
 
 import {
   createGrammarTopicController,
@@ -12,7 +12,7 @@ import {
   updateGrammarTopicController,
   deleteGrammarTopicController,
   
-} from "../controller/grammar.controller";
+} from "../../controller/grammer/grammar.controller";
 
 import {
   createGrammarQuestionController,
@@ -20,7 +20,7 @@ import {
   updateGrammarQuestionController,
   deleteGrammarQuestionController,
   submitGrammarAnswerController,
-} from "../controller/grammar-question.controller";
+} from "../../controller/grammer/grammar-question.controller";
 
 const router = Router();
  

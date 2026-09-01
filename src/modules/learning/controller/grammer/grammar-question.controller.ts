@@ -5,8 +5,8 @@ import {
   updateGrammarQuestion,
   deleteGrammarQuestion,
   submitGrammarAnswer,
-} from "../service/grammar-question.service";
-import { AuthRequest } from "../../../middlewares/auth.middleware";
+} from "../../service/grammer/grammar-question.service";
+import { AuthRequest } from "../../../../middlewares/auth.middleware";
 
 
 export const createGrammarQuestionController =

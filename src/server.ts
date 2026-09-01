@@ -6,7 +6,7 @@ import userRoutes from "./modules/user/route/user.route";
 import levelRoutes from "./modules/learning/route/level.route";
 import bookRoutes from "./modules/learning/route/book.route";
 import chapterRoutes from "./modules/learning/route/chapter.route";
-import grammarRoutes from "./modules/learning/route/grammar.route";
+import grammarRoutes from "./modules/learning/route/grammer/grammar.route";
 
 
 const startServer = async () => {
