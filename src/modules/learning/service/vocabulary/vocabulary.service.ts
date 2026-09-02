@@ -1,4 +1,5 @@
 import { prisma } from "../../../../lib/prisma";
+import { generateGermanSpeech } from "../../../../lib/text-to-speech";
 
 type VocabularyData = {
   germanWord: string;
