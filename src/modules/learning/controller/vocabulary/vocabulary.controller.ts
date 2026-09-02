@@ -6,6 +6,7 @@ import {
   getVocabularyById,
   updateVocabulary,
   deleteVocabulary,
+  getVocabularyPronunciation,
 } from "../../service/vocabulary/vocabulary.service";
 
 export const createVocabularyController = async (
@@ -204,6 +205,44 @@ export const deleteVocabularyController =
           error instanceof Error
             ? error.message
             : "Failed to delete vocabulary",
+      });
+    }
+  };
+
+
+
+  export const getVocabularyPronunciationController =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const { id } = req.params;
+
+      if (typeof id !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid vocabulary ID",
+        });
+      }
+
+      const result =
+        await getVocabularyPronunciation(id);
+
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": "inline",
+        "Cache-Control": "public, max-age=86400",
+      });
+
+      return res.send(result.audio);
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate pronunciation",
       });
     }
   };

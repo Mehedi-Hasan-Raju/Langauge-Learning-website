@@ -149,3 +149,33 @@ export const deleteVocabulary = async (
     },
   });
 };
+
+
+export const getVocabularyPronunciation = async (
+  id: string
+) => {
+  const vocabulary =
+    await prisma.vocabulary.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        germanWord: true,
+      },
+    });
+
+  if (!vocabulary) {
+    throw new Error("Vocabulary not found");
+  }
+
+  const audio =
+    await generateGermanSpeech(
+      vocabulary.germanWord
+    );
+
+  return {
+    germanWord: vocabulary.germanWord,
+    audio,
+  };
+};
