@@ -1,35 +1,32 @@
-import textToSpeech from "@google-cloud/text-to-speech";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import path from "path";
 
-const client =
-  new textToSpeech.TextToSpeechClient();
+const execFileAsync = promisify(execFile);
 
 export const generateGermanSpeech = async (
-  text: string
-) => {
-  const request = {
-    input: {
-      text,
-    },
+  text: string,
+  outputPath: string
+): Promise<void> => {
+  const pythonBin = process.env.PYTHON_BIN || "python";
 
-    voice: {
-      languageCode: "de-DE",
-      ssmlGender: "NEUTRAL" as const,
-    },
+  const scriptPath = path.join(
+    process.cwd(),
+    "python",
+    "generate_speech.py"
+  );
 
-    audioConfig: {
-      audioEncoding:
-        "MP3" as const,
-    },
-  };
-
-  const [response] =
-    await client.synthesizeSpeech(request);
-
-  if (!response.audioContent) {
-    throw new Error(
-      "Failed to generate pronunciation audio"
+  try {
+    await execFileAsync(
+      pythonBin,
+      [scriptPath, text, outputPath],
+      {
+        windowsHide: true,
+      }
     );
-  }
+  } catch (error: any) {
+    console.error("gTTS Error:", error?.stderr || error);
 
-  return response.audioContent;
+    throw new Error("Failed to generate German pronunciation");
+  }
 };
