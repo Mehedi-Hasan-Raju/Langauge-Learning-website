@@ -6,7 +6,6 @@ import {
   getVocabularyById,
   updateVocabulary,
   deleteVocabulary,
-  getVocabularyPronunciation,
 } from "../../service/vocabulary/vocabulary.service";
 
 export const createVocabularyController = async (
@@ -19,7 +18,6 @@ export const createVocabularyController = async (
       englishMeaning,
       article,
       plural,
-      audioUrl,
       chapterId,
     } = req.body;
 
@@ -34,19 +32,18 @@ export const createVocabularyController = async (
     const vocabulary = await createVocabulary({
       germanWord: germanWord.trim(),
       englishMeaning: englishMeaning.trim(),
+
       article:
         typeof article === "string"
           ? article.trim()
           : undefined,
+
       plural:
         typeof plural === "string"
           ? plural.trim()
           : undefined,
-      audioUrl:
-        typeof audioUrl === "string"
-          ? audioUrl.trim()
-          : undefined,
-      chapterId,
+
+      chapterId: chapterId.trim(),
     });
 
     return res.status(201).json({
@@ -211,38 +208,3 @@ export const deleteVocabularyController =
 
 
 
-  export const getVocabularyPronunciationController =
-  async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-      const { id } = req.params;
-
-      if (typeof id !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid vocabulary ID",
-        });
-      }
-
-      const result =
-        await getVocabularyPronunciation(id);
-
-      res.set({
-        "Content-Type": "audio/mpeg",
-        "Content-Disposition": "inline",
-        "Cache-Control": "public, max-age=86400",
-      });
-
-      return res.send(result.audio);
-    } catch (error) {
-      return res.status(404).json({
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate pronunciation",
-      });
-    }
-  };

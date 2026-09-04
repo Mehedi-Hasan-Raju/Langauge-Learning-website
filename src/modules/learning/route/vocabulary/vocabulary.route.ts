@@ -11,7 +11,6 @@ import {
   getVocabularyByIdController,
   updateVocabularyController,
   deleteVocabularyController,
-   getVocabularyPronunciationController,
 } from "../../../learning/controller/vocabulary/vocabulary.controller";
 
 const router = Router();
@@ -55,11 +54,11 @@ router.delete(
 // Pronunciation Route
 //=======================
 
-router.get(
-  "/:id/pronunciation",
-  authenticate,
-  getVocabularyPronunciationController
-);
+// router.get(
+//   "/:id/pronunciation",
+//   authenticate,
+//   getVocabularyPronunciationController
+// );
 
 router.get(
   "/:id",
