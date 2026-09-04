@@ -8,6 +8,55 @@ import path from "path";
 import crypto from "crypto";
 
 
+const getCloudinaryPublicId = (
+  audioUrl: string
+): string | null => {
+  try {
+    const url = new URL(audioUrl);
+
+    const uploadIndex = url.pathname.indexOf("/upload/");
+
+    if (uploadIndex === -1) {
+      return null;
+    }
+
+    let publicId = url.pathname.slice(
+      uploadIndex + "/upload/".length
+    );
+
+    // Remove version, e.g. v123456789/
+    publicId = publicId.replace(/^v\d+\//, "");
+
+    // Remove file extension
+    publicId = publicId.replace(/\.[^/.]+$/, "");
+
+    return publicId;
+  } catch {
+    return null;
+  }
+};
+
+const deleteCloudinaryAudio = async (
+  audioUrl: string
+) => {
+  const publicId = getCloudinaryPublicId(audioUrl);
+
+  if (!publicId) {
+    return;
+  }
+
+  try {
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "video",
+    });
+  } catch (error) {
+    console.error(
+      "Cloudinary audio deletion failed:",
+      error
+    );
+  }
+};
+
 
 interface CreateVocabularyInput {
   germanWord: string;
@@ -170,6 +219,8 @@ export const getVocabularyById = async (
   return vocabulary;
 };
 
+
+
 export const updateVocabulary = async (
   id: string,
   data: {
@@ -177,7 +228,6 @@ export const updateVocabulary = async (
     englishMeaning?: string;
     article?: string;
     plural?: string;
-    audioUrl?: string;
   }
 ) => {
   const vocabulary = await prisma.vocabulary.findUnique({
@@ -190,29 +240,147 @@ export const updateVocabulary = async (
     throw new Error("Vocabulary not found");
   }
 
-  return await prisma.vocabulary.update({
-    where: {
-      id,
-    },
-    data: {
-      ...(data.germanWord !== undefined && {
-        germanWord: data.germanWord,
-      }),
-      ...(data.englishMeaning !== undefined && {
-        englishMeaning: data.englishMeaning,
-      }),
-      ...(data.article !== undefined && {
-        article: data.article,
-      }),
-      ...(data.plural !== undefined && {
-        plural: data.plural,
-      }),
-      ...(data.audioUrl !== undefined && {
-        audioUrl: data.audioUrl,
-      }),
-    },
-  });
+  const newGermanWord =
+    data.germanWord !== undefined
+      ? data.germanWord.trim()
+      : vocabulary.germanWord;
+
+  const germanWordChanged =
+    newGermanWord !== vocabulary.germanWord;
+
+  // ------------------------------------------------
+  // CASE 1: German word did not change
+  // ------------------------------------------------
+  if (!germanWordChanged) {
+    return await prisma.vocabulary.update({
+      where: {
+        id,
+      },
+      data: {
+        ...(data.englishMeaning !== undefined && {
+          englishMeaning: data.englishMeaning.trim(),
+        }),
+
+        ...(data.article !== undefined && {
+          article: data.article.trim(),
+        }),
+
+        ...(data.plural !== undefined && {
+          plural: data.plural.trim(),
+        }),
+      },
+    });
+  }
+
+  // ------------------------------------------------
+  // CASE 2: German word changed
+  // Generate new pronunciation
+  // ------------------------------------------------
+
+  const tempDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "german-tts-")
+  );
+
+  const fileName = `${crypto.randomUUID()}.mp3`;
+  const audioPath = path.join(tempDir, fileName);
+
+  let uploadedAudio: any = null;
+
+  try {
+    // 1. Generate new German pronunciation
+    await generateGermanSpeech(
+      newGermanWord,
+      audioPath
+    );
+
+    // 2. Upload new audio to Cloudinary
+    uploadedAudio =
+      await cloudinary.uploader.upload(
+        audioPath,
+        {
+          folder: "german-learning/vocabulary",
+          resource_type: "video",
+          public_id: `vocabulary-${crypto.randomUUID()}`,
+          format: "mp3",
+        }
+      );
+
+    // 3. Update database
+    const updatedVocabulary =
+      await prisma.vocabulary.update({
+        where: {
+          id,
+        },
+        data: {
+          germanWord: newGermanWord,
+
+          ...(data.englishMeaning !== undefined && {
+            englishMeaning:
+              data.englishMeaning.trim(),
+          }),
+
+          ...(data.article !== undefined && {
+            article: data.article.trim(),
+          }),
+
+          ...(data.plural !== undefined && {
+            plural: data.plural.trim(),
+          }),
+
+          audioUrl: uploadedAudio.secure_url,
+        },
+      });
+
+    // 4. Delete old Cloudinary audio
+    if (vocabulary.audioUrl) {
+      await deleteCloudinaryAudio(
+        vocabulary.audioUrl
+      );
+    }
+
+    return updatedVocabulary;
+  } catch (error) {
+    console.error(
+      "Vocabulary update failed:",
+      error
+    );
+
+    // If new audio was uploaded but DB update failed,
+    // delete the new Cloudinary file.
+    if (uploadedAudio?.public_id) {
+      try {
+        await cloudinary.uploader.destroy(
+          uploadedAudio.public_id,
+          {
+            resource_type: "video",
+          }
+        );
+      } catch (cleanupError) {
+        console.error(
+          "New Cloudinary audio cleanup failed:",
+          cleanupError
+        );
+      }
+    }
+
+    throw error;
+  } finally {
+    // Delete temporary MP3
+    try {
+      await fs.rm(tempDir, {
+        recursive: true,
+        force: true,
+      });
+    } catch (cleanupError) {
+      console.error(
+        "Temporary file cleanup failed:",
+        cleanupError
+      );
+    }
+  }
 };
+
+
 
 export const deleteVocabulary = async (
   id: string
@@ -227,6 +395,14 @@ export const deleteVocabulary = async (
     throw new Error("Vocabulary not found");
   }
 
+  // 1. Delete Cloudinary audio
+  if (vocabulary.audioUrl) {
+    await deleteCloudinaryAudio(
+      vocabulary.audioUrl
+    );
+  }
+
+  // 2. Delete database record
   return await prisma.vocabulary.delete({
     where: {
       id,
