@@ -15,6 +15,7 @@ import {
   getListeningTaskByIdController,
   updateListeningTaskController,
   deleteListeningTaskController,
+  submitListeningAnswerController
 } from "../../controller/listening/listening.controller";
 
 const router = Router();
@@ -85,6 +86,12 @@ router.delete(
   authenticate,
   authorizeAdmin,
   deleteListeningTaskController
+);
+
+router.post(
+  "/submit",
+  authenticate,
+  submitListeningAnswerController
 );
 
 export default router;

@@ -349,3 +349,406 @@ export const deleteListeningTask = async (
     },
   });
 };
+
+
+//submission 
+
+
+export const submitListeningAnswer = async (data: {
+  userId: string;
+  taskId: string;
+  userAnswer: string;
+}) => {
+  const task = await prisma.listeningTask.findUnique({
+    where: {
+      id: data.taskId,
+    },
+    include: {
+      listeningExercise: true,
+    },
+  });
+
+  if (!task) {
+    throw new Error("Listening task not found");
+  }
+
+  // ------------------------------------------
+  // Normalize answer
+  // ------------------------------------------
+
+  const normalize = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .replace(/[.!?,;:]+$/g, "");
+
+  const userAnswer = normalize(
+    data.userAnswer
+  );
+
+  // JSON answer -> string
+  let correctAnswer = "";
+
+  if (typeof task.answer === "string") {
+    correctAnswer = task.answer;
+  } else if (Array.isArray(task.answer)) {
+    correctAnswer = task.answer
+      .map((item) => String(item))
+      .join(" ");
+  } else {
+    correctAnswer = String(task.answer);
+  }
+
+  const normalizedCorrectAnswer =
+    normalize(correctAnswer);
+
+  const isCorrect =
+    userAnswer === normalizedCorrectAnswer;
+
+  const score = isCorrect ? 100 : 0;
+
+  // ------------------------------------------
+  // Save submission
+  // ------------------------------------------
+
+  const submission =
+    await prisma.listeningSubmission.create({
+      data: {
+        userId: data.userId,
+        taskId: data.taskId,
+        userAnswer: data.userAnswer,
+        isCorrect,
+        score,
+      },
+    });
+
+  // ------------------------------------------
+  // Find all tasks of this chapter
+  // ------------------------------------------
+
+  const chapterId =
+    task.listeningExercise.chapterId;
+
+  const totalTasks =
+    await prisma.listeningTask.count({
+      where: {
+        listeningExercise: {
+          chapterId,
+        },
+      },
+    });
+
+  // ------------------------------------------
+  // Get all user submissions
+  // ------------------------------------------
+
+  const submissions =
+    await prisma.listeningSubmission.findMany({
+      where: {
+        userId: data.userId,
+        task: {
+          listeningExercise: {
+            chapterId,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+  // ------------------------------------------
+  // Latest submission per task
+  // ------------------------------------------
+
+  const latestByTask = new Map<
+    string,
+    (typeof submissions)[number]
+  >();
+
+  for (const item of submissions) {
+    if (!latestByTask.has(item.taskId)) {
+      latestByTask.set(
+        item.taskId,
+        item
+      );
+    }
+  }
+
+  const latestSubmissions = Array.from(
+    latestByTask.values()
+  );
+
+  // ------------------------------------------
+  // Attempts %
+  // ------------------------------------------
+
+  const completedTasks =
+    latestSubmissions.length;
+
+  const listeningProgress =
+    totalTasks === 0
+      ? 0
+      : Math.min(
+          100,
+          (completedTasks / totalTasks) * 100
+        );
+
+  // ------------------------------------------
+  // Accuracy
+  // ------------------------------------------
+
+  const accuracy =
+    latestSubmissions.length === 0
+      ? 0
+      : latestSubmissions.reduce(
+          (sum, item) => sum + item.score,
+          0
+        ) / latestSubmissions.length;
+
+  // ------------------------------------------
+  // Skill Progress
+  // ------------------------------------------
+
+  const oldSkillProgress =
+    await prisma.skillProgress.findUnique({
+      where: {
+        userId_skill: {
+          userId: data.userId,
+          skill: "LISTENING",
+        },
+      },
+    });
+
+  await prisma.skillProgress.upsert({
+    where: {
+      userId_skill: {
+        userId: data.userId,
+        skill: "LISTENING",
+      },
+    },
+    create: {
+      userId: data.userId,
+      skill: "LISTENING",
+      completedTasks: completedTasks,
+      totalTasks: totalTasks,
+      currentScore: accuracy,
+      previousScore: 0,
+    },
+    update: {
+      completedTasks: completedTasks,
+      totalTasks: totalTasks,
+      currentScore: accuracy,
+      previousScore:
+        oldSkillProgress?.currentScore ?? 0,
+    },
+  });
+
+  // ------------------------------------------
+  // User Progress
+  // ------------------------------------------
+
+  const oldProgress =
+    await prisma.userProgress.findUnique({
+      where: {
+        userId_chapterId: {
+          userId: data.userId,
+          chapterId,
+        },
+      },
+    });
+
+  const grammarProgress =
+    oldProgress?.grammarProgress ?? 0;
+
+  const vocabularyProgress =
+    oldProgress?.vocabularyProgress ?? 0;
+
+  const writingProgress =
+    oldProgress?.writingProgress ?? 0;
+
+  const sentenceProgress =
+    oldProgress?.sentenceProgress ?? 0;
+
+  // Speaking is intentionally excluded
+
+  const overallProgress =
+    (
+      grammarProgress +
+      vocabularyProgress +
+      listeningProgress +
+      writingProgress +
+      sentenceProgress
+    ) / 5;
+
+  await prisma.userProgress.upsert({
+    where: {
+      userId_chapterId: {
+        userId: data.userId,
+        chapterId,
+      },
+    },
+    create: {
+      userId: data.userId,
+      chapterId,
+      grammarProgress,
+      vocabularyProgress,
+      listeningProgress,
+      writingProgress,
+      sentenceProgress,
+      overallProgress,
+    },
+    update: {
+      listeningProgress,
+      overallProgress,
+    },
+  });
+
+  // ------------------------------------------
+  // Activity Record
+  // ------------------------------------------
+
+  await prisma.activityRecord.create({
+    data: {
+      userId: data.userId,
+      skill: "LISTENING",
+      activityType: "LISTENING_TASK",
+      referenceId: data.taskId,
+      score,
+      durationMinutes: 0,
+    },
+  });
+
+  // ------------------------------------------
+  // Daily Activity + Streak
+  // ------------------------------------------
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const tomorrow = new Date(today);
+  tomorrow.setDate(
+    tomorrow.getDate() + 1
+  );
+
+  const yesterday = new Date(today);
+  yesterday.setDate(
+    yesterday.getDate() - 1
+  );
+
+  const dailyActivity =
+    await prisma.dailyActivity.findFirst({
+      where: {
+        userId: data.userId,
+        date: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+    });
+
+  if (dailyActivity) {
+    await prisma.dailyActivity.update({
+      where: {
+        id: dailyActivity.id,
+      },
+      data: {
+        completedTasks: {
+          increment: 1,
+        },
+        listeningCompleted: {
+          increment: 1,
+        },
+      },
+    });
+  } else {
+    await prisma.dailyActivity.create({
+      data: {
+        userId: data.userId,
+        date: today,
+        completedTasks: 1,
+        listeningCompleted: 1,
+      },
+    });
+  }
+
+  // ------------------------------------------
+  // Streak
+  // ------------------------------------------
+
+  const profile =
+    await prisma.userProfile.findUnique({
+      where: {
+        userId: data.userId,
+      },
+    });
+
+  let currentStreak = 1;
+
+  if (profile?.lastActiveDate) {
+    const lastActive =
+      new Date(profile.lastActiveDate);
+
+    lastActive.setHours(0, 0, 0, 0);
+
+    if (
+      lastActive.getTime() ===
+      today.getTime()
+    ) {
+      currentStreak =
+        profile.currentStreak;
+    } else if (
+      lastActive.getTime() ===
+      yesterday.getTime()
+    ) {
+      currentStreak =
+        profile.currentStreak + 1;
+    }
+  }
+
+  const longestStreak = Math.max(
+    profile?.longestStreak ?? 0,
+    currentStreak
+  );
+
+  await prisma.userProfile.upsert({
+    where: {
+      userId: data.userId,
+    },
+    create: {
+      userId: data.userId,
+      currentStreak,
+      longestStreak,
+      lastActiveDate: new Date(),
+    },
+    update: {
+      currentStreak,
+      longestStreak,
+      lastActiveDate: new Date(),
+    },
+  });
+
+  // ------------------------------------------
+  // Return result
+  // ------------------------------------------
+
+  return {
+    submission,
+
+    result: {
+      isCorrect,
+      correctAnswer,
+      explanation:
+        task.explanation,
+    },
+
+    progress: {
+      completedTasks,
+      totalTasks,
+      attemptsPercentage:
+        listeningProgress,
+      accuracy,
+    },
+  };
+};

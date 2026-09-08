@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-
+import {AuthRequest,} from "../../../../middlewares/auth.middleware";
 import {
   createListeningExercise,
   getListeningExercisesByChapter,
@@ -10,6 +10,7 @@ import {
   getListeningTaskById,
   updateListeningTask,
   deleteListeningTask,
+  submitListeningAnswer,
 } from "../../service/listening/listening.service";
 
 export const createListeningExerciseController =
@@ -365,6 +366,58 @@ export const deleteListeningExerciseController =
           error instanceof Error
             ? error.message
             : "Failed to delete listening task",
+      });
+    }
+  };
+
+
+  export const submitListeningAnswerController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        taskId,
+        userAnswer,
+      } = req.body;
+
+      if (!taskId || userAnswer === undefined) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "taskId and userAnswer are required",
+        });
+      }
+
+      const result =
+        await submitListeningAnswer({
+          userId: req.user.userId,
+          taskId,
+          userAnswer: String(userAnswer),
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Listening answer submitted successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit listening answer",
       });
     }
   };
