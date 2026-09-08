@@ -52,6 +52,7 @@ model User {
   grammarSubmissions  GrammarSubmission[]
   writingSubmissions  WritingSubmission[]
   speakingSubmissions SpeakingSubmission[]
+  listeningSubmissions ListeningSubmission[]
   subscriptions       Subscription[]
   payments            Payment[]
   blogLikes           BlogLike[]
@@ -379,7 +380,7 @@ model ListeningTask {
   explanation String?
 
   listeningExerciseId String
-
+  submissions ListeningSubmission[]
   listeningExercise ListeningExercise @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -388,6 +389,31 @@ model ListeningTask {
   @@unique([listeningExerciseId, taskNo])
   @@index([listeningExerciseId])
 }
+
+//========================================
+//Listning submissions
+//=======================================
+model ListeningSubmission {
+  id String @id @default(uuid())
+
+  userId String
+  user User @relation( fields: [userId], references: [id],onDelete: Cascade)
+
+  taskId String
+  task ListeningTask @relation(fields: [taskId],references: [id],onDelete: Cascade)
+
+  userAnswer String
+  isCorrect Boolean
+  score Float
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([userId, taskId])
+}
+
+
 
 // ========================================
 // SPRECHEN / SPEAKING PRACTICE
