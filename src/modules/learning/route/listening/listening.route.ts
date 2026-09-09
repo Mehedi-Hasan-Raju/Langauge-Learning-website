@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import { audioUpload } from "../../../../lib/upload";
 import {
   authenticate,
   authorizeAdmin,
@@ -94,4 +94,20 @@ router.post(
   submitListeningAnswerController
 );
 
+
+router.post(
+  "/exercises",
+  authenticate,
+  authorizeAdmin,
+  audioUpload.single("audio"),
+  createListeningExerciseController
+);
+
+router.patch(
+  "/exercises/:id",
+  authenticate,
+  authorizeAdmin,
+  audioUpload.single("audio"),
+  updateListeningExerciseController
+);
 export default router;

@@ -1,4 +1,63 @@
 import { prisma } from "../../../../lib/prisma";
+import {uploadListeningAudio,} from "../../../../lib/cloudinary-audio";
+import cloudinary from "../../../../lib/cloudinary";
+
+
+const getCloudinaryPublicId = (
+  audioUrl: string
+): string | null => {
+  try {
+    const url = new URL(audioUrl);
+
+    const uploadIndex =
+      url.pathname.indexOf("/upload/");
+
+    if (uploadIndex === -1) {
+      return null;
+    }
+
+    let publicId = url.pathname.slice(
+      uploadIndex + "/upload/".length
+    );
+
+    publicId = publicId.replace(
+      /^v\d+\//,
+      ""
+    );
+
+    publicId = publicId.replace(
+      /\.[^/.]+$/,
+      ""
+    );
+
+    return publicId;
+  } catch {
+    return null;
+  }
+};
+
+const deleteCloudinaryAudio = async (
+  audioUrl: string
+) => {
+  const publicId =
+    getCloudinaryPublicId(audioUrl);
+
+  if (!publicId) return;
+
+  try {
+    await cloudinary.uploader.destroy(
+      publicId,
+      {
+        resource_type: "video",
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Cloudinary audio deletion failed:",
+      error
+    );
+  }
+};
 
 
 interface CreateListeningExerciseInput {
@@ -100,8 +159,8 @@ export const updateListeningExercise = async (
   id: string,
   data: {
     title?: string;
-    audioUrl?: string;
     transcript?: string;
+    audioBuffer?: Buffer;
   }
 ) => {
   const exercise =
@@ -117,24 +176,52 @@ export const updateListeningExercise = async (
     );
   }
 
-  return await prisma.listeningExercise.update({
-    where: {
-      id,
-    },
-    data: {
-      ...(data.title !== undefined && {
-        title: data.title.trim(),
-      }),
+  let newAudioUrl =
+    exercise.audioUrl;
 
-      ...(data.audioUrl !== undefined && {
-        audioUrl: data.audioUrl.trim(),
-      }),
+  if (data.audioBuffer) {
+    const uploadedAudio =
+      await uploadListeningAudio(
+        data.audioBuffer,
+        "listening.mp3"
+      );
 
-      ...(data.transcript !== undefined && {
-        transcript: data.transcript.trim(),
-      }),
-    },
-  });
+    newAudioUrl =
+      uploadedAudio.secure_url;
+  }
+
+  const updatedExercise =
+    await prisma.listeningExercise.update({
+      where: {
+        id,
+      },
+      data: {
+        ...(data.title !== undefined && {
+          title: data.title.trim(),
+        }),
+
+        ...(data.transcript !== undefined && {
+          transcript:
+            data.transcript.trim(),
+        }),
+
+        ...(data.audioBuffer && {
+          audioUrl: newAudioUrl,
+        }),
+      },
+    });
+
+  // Delete old audio after successful DB update
+  if (
+    data.audioBuffer &&
+    exercise.audioUrl
+  ) {
+    await deleteCloudinaryAudio(
+      exercise.audioUrl
+    );
+  }
+
+  return updatedExercise;
 };
 
 export const deleteListeningExercise = async (

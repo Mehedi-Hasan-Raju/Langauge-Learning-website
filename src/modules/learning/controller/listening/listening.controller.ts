@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import multer from "multer";
+import {uploadListeningAudio,} from "../../../../lib/cloudinary-audio"
 import {AuthRequest,} from "../../../../middlewares/auth.middleware";
 import {
   createListeningExercise,
@@ -13,6 +15,26 @@ import {
   submitListeningAnswer,
 } from "../../service/listening/listening.service";
 
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "audio/mpeg") {
+      cb(null, true);
+      return;
+    }
+
+    cb(
+      new Error(
+        "Only MP3 audio files are allowed"
+      )
+    );
+  },
+});
+
 export const createListeningExerciseController =
   async (
     req: Request,
@@ -21,27 +43,37 @@ export const createListeningExerciseController =
     try {
       const {
         title,
-        audioUrl,
         transcript,
         chapterId,
       } = req.body;
 
-      if (
-        !title ||
-        !audioUrl ||
-        !chapterId
-      ) {
+      if (!title || !chapterId) {
         return res.status(400).json({
           success: false,
           message:
-            "title, audioUrl and chapterId are required",
+            "title and chapterId are required",
         });
       }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "MP3 audio file is required",
+        });
+      }
+
+      const uploadedAudio =
+        await uploadListeningAudio(
+          req.file.buffer,
+          req.file.originalname
+        );
 
       const exercise =
         await createListeningExercise({
           title,
-          audioUrl,
+          audioUrl:
+            uploadedAudio.secure_url,
           transcript,
           chapterId,
         });
@@ -132,7 +164,7 @@ export const createListeningExerciseController =
     }
   };
 
-  export const updateListeningExerciseController =
+export const updateListeningExerciseController =
   async (
     req: Request,
     res: Response
@@ -149,8 +181,14 @@ export const createListeningExerciseController =
 
       const exercise =
         await updateListeningExercise(
-          id, 
-          req.body
+          id,
+          {
+            title: req.body.title,
+            transcript:
+              req.body.transcript,
+            audioBuffer:
+              req.file?.buffer,
+          }
         );
 
       return res.status(200).json({
@@ -169,7 +207,6 @@ export const createListeningExerciseController =
       });
     }
   };
-
 
 export const deleteListeningExerciseController =
   async (
