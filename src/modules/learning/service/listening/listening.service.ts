@@ -240,6 +240,14 @@ export const deleteListeningExercise = async (
     );
   }
 
+  // Delete Cloudinary audio
+  if (exercise.audioUrl) {
+    await deleteCloudinaryAudio(
+      exercise.audioUrl
+    );
+  }
+
+  // Delete DB record
   return await prisma.listeningExercise.delete({
     where: {
       id,
