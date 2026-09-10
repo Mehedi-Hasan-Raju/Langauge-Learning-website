@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
-
+import { AuthRequest } from "../../../../middlewares/auth.middleware";
 import {
   createWritingTask,
   getWritingTasksByChapter,
   getWritingTaskById,
   updateWritingTask,
   deleteWritingTask,
+  submitWritingAnswer,
 } from "../../service/writing/writing.service";
 
 export const createWritingTaskController =
@@ -220,6 +221,58 @@ export const deleteWritingTaskController =
           error instanceof Error
             ? error.message
             : "Failed to delete writing task",
+      });
+    }
+  };
+
+
+export const submitWritingAnswerController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        taskId,
+        answer,
+      } = req.body;
+
+      if (!taskId || answer === undefined) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "taskId and answer are required",
+        });
+      }
+
+      const result =
+        await submitWritingAnswer({
+          userId: req.user.userId,
+          taskId,
+          answer: String(answer),
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Writing answer submitted successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit writing answer",
       });
     }
   };

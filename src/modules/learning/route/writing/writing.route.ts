@@ -11,6 +11,7 @@ import {
   getWritingTaskByIdController,
   updateWritingTaskController,
   deleteWritingTaskController,
+  submitWritingAnswerController,
 } from "../../controller/writing/writing.controller";
 
 const router = Router();
@@ -50,6 +51,12 @@ router.delete(
   authenticate,
   authorizeAdmin,
   deleteWritingTaskController
+);
+
+router.post(
+  "/submit",
+  authenticate,
+  submitWritingAnswerController
 );
 
 export default router;
