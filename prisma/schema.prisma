@@ -302,6 +302,8 @@ model WritingTask {
   minWords Int?
   maxWords Int?
 
+  answer String?
+
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 

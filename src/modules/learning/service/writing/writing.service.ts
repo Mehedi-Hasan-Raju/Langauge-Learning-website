@@ -9,6 +9,7 @@ interface CreateWritingTaskInput {
     | "SHORT_MESSAGE";
   minWords?: number;
   maxWords?: number;
+  answer?: string;
   chapterId: string;
 }
 
@@ -32,6 +33,7 @@ export const createWritingTask = async (
       type: data.type,
       minWords: data.minWords,
       maxWords: data.maxWords,
+      answer: data.answer?.trim(),
       chapterId: data.chapterId,
     },
   });
@@ -98,6 +100,7 @@ export const updateWritingTask = async (
       | "SHORT_MESSAGE";
     minWords?: number | null;
     maxWords?: number | null;
+    answer?: string | null;
   }
 ) => {
   const task = await prisma.writingTask.findUnique({
@@ -134,6 +137,12 @@ export const updateWritingTask = async (
       ...(data.maxWords !== undefined && {
         maxWords: data.maxWords,
       }),
+      ...(data.answer !== undefined && {
+       answer:
+        data.answer === null
+       ? null
+       : data.answer.trim(),
+     }),
     },
   });
 };
