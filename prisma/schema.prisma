@@ -53,6 +53,7 @@ model User {
   writingSubmissions  WritingSubmission[]
   speakingSubmissions SpeakingSubmission[]
   listeningSubmissions ListeningSubmission[]
+  sentenceSubmissions SentenceSubmission[]
   subscriptions       Subscription[]
   payments            Payment[]
   blogLikes           BlogLike[]
@@ -275,12 +276,39 @@ model SentenceExercise {
 
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-
+  submissions SentenceSubmission[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([chapterId, taskNo])
   @@index([chapterId])
+}
+
+//========================================
+//sentence building submissions
+//========================================
+model SentenceSubmission {
+  id String @id @default(uuid())
+
+  userId String
+  user User @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  exerciseId String
+  exercise SentenceExercise @relation( fields: [exerciseId],references: [id],onDelete: Cascade)
+
+  userAnswer String
+  isCorrect Boolean
+  score Float
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([userId, exerciseId])
 }
 
 // ========================================

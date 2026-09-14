@@ -10,6 +10,8 @@ import grammarRoutes from "./modules/learning/route/grammer/grammar.route";
 import vocabularyRoutes from "./modules/learning/route/vocabulary/vocabulary.route"
 import listeningRoutes from "./modules/learning/route/listening/listening.route";
 import writingRoutes from "./modules/learning/route/writing/writing.route";
+import sentenceRoutes from "./modules/learning/route/sentence/sentence.route";
+
 
 const startServer = async () => {
   try {
@@ -42,4 +44,5 @@ app.use("/api/learning/grammar", grammarRoutes);
 app.use("/api/learning/vocabulary",vocabularyRoutes);
 app.use("/api/learning/listening",listeningRoutes);
 app.use("/api/learning/writing",writingRoutes);
+app.use("/api/learning/sentence",sentenceRoutes);
 startServer();
