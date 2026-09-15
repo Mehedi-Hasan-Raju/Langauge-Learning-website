@@ -291,11 +291,7 @@ model SentenceSubmission {
   id String @id @default(uuid())
 
   userId String
-  user User @relation(
-    fields: [userId],
-    references: [id],
-    onDelete: Cascade
-  )
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
 
   exerciseId String
   exercise SentenceExercise @relation( fields: [exerciseId],references: [id],onDelete: Cascade)
