@@ -11,6 +11,7 @@ import {
   getSentenceExerciseByIdController,
   updateSentenceExerciseController,
   deleteSentenceExerciseController,
+  submitSentenceAnswerController,
 } from "../../controller/sentence/sentence.controller";
 
 const router = Router();
@@ -46,6 +47,12 @@ router.delete(
   authenticate,
   authorizeAdmin,
   deleteSentenceExerciseController
+);
+
+router.post(
+  "/submit",
+  authenticate,
+  submitSentenceAnswerController
 );
 
 export default router;

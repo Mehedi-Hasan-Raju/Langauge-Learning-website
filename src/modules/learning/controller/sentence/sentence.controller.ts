@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { AuthRequest,} from "../../../../middlewares/auth.middleware";
 
 import {
   createSentenceExercise,
@@ -6,6 +7,7 @@ import {
   getSentenceExerciseById,
   updateSentenceExercise,
   deleteSentenceExercise,
+  submitSentenceAnswer,
 } from "../../service/sentence/sentence.service";
 
 export const createSentenceExerciseController =
@@ -200,6 +202,60 @@ export const deleteSentenceExerciseController =
           error instanceof Error
             ? error.message
             : "Failed to delete sentence exercise",
+      });
+    }
+  };
+
+  export const submitSentenceAnswerController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        exerciseId,
+        userAnswer,
+      } = req.body;
+
+      if (
+        !exerciseId ||
+        userAnswer === undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "exerciseId and userAnswer are required",
+        });
+      }
+
+      const result =
+        await submitSentenceAnswer({
+          userId: req.user.userId,
+          exerciseId,
+          userAnswer: String(userAnswer),
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Sentence answer submitted successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit sentence answer",
       });
     }
   };
