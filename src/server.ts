@@ -11,7 +11,7 @@ import vocabularyRoutes from "./modules/learning/route/vocabulary/vocabulary.rou
 import listeningRoutes from "./modules/learning/route/listening/listening.route";
 import writingRoutes from "./modules/learning/route/writing/writing.route";
 import sentenceRoutes from "./modules/learning/route/sentence/sentence.route";
-
+import speakingRoutes from "./modules/learning/route/speaking/speaking.route";
 
 const startServer = async () => {
   try {
@@ -45,4 +45,6 @@ app.use("/api/learning/vocabulary",vocabularyRoutes);
 app.use("/api/learning/listening",listeningRoutes);
 app.use("/api/learning/writing",writingRoutes);
 app.use("/api/learning/sentence",sentenceRoutes);
+app.use( "/api/learning/speaking",speakingRoutes);
+
 startServer();
