@@ -1,4 +1,13 @@
 import { prisma } from "../../../../lib/prisma";
+import {
+  uploadSpeakingAudio,
+} from "../../../../lib/cloudinary-speaking";
+
+import {
+  evaluateGermanSpeaking,
+} from "./gemini-speaking.service";
+
+import cloudinary from "../../../../lib/cloudinary";
 
 interface CreateSpeakingPracticeInput {
   title: string;
@@ -163,3 +172,151 @@ export const deleteSpeakingPractice = async (
     },
   });
 };
+
+
+export const submitSpeakingAnswer =
+  async (data: {
+    userId: string;
+    practiceId: string;
+    audioBuffer: Buffer;
+  }) => {
+    const practice =
+      await prisma.speakingPractice.findUnique({
+        where: {
+          id: data.practiceId,
+        },
+      });
+
+    if (!practice) {
+      throw new Error(
+        "Speaking practice not found"
+      );
+    }
+
+    if (!data.audioBuffer.length) {
+      throw new Error(
+        "Audio file is empty"
+      );
+    }
+
+    // ------------------------------------------
+    // Upload learner audio to Cloudinary
+    // ------------------------------------------
+
+    const uploadedAudio =
+      await uploadSpeakingAudio(
+        data.audioBuffer
+      );
+
+    try {
+      // ----------------------------------------
+      // Gemini transcript + evaluation
+      // ----------------------------------------
+
+      const evaluation =
+        await evaluateGermanSpeaking(
+          data.audioBuffer,
+          {
+            title: practice.title,
+            instruction:
+              practice.instruction,
+            prompt: practice.prompt,
+            type: practice.type,
+          }
+        );
+
+      const score = Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(
+            Number(evaluation.score)
+          )
+        )
+      );
+
+      // ----------------------------------------
+      // Save submission
+      // ----------------------------------------
+
+      const submission =
+        await prisma.speakingSubmission.create({
+          data: {
+            userId: data.userId,
+            practiceId: data.practiceId,
+            audioUrl:
+              uploadedAudio.secure_url,
+            transcript:
+              evaluation.transcript,
+            score,
+            feedback: {
+              ...evaluation,
+              score,
+            },
+            grammarErrors:
+              evaluation.grammarErrors ?? [],
+            vocabularyFeedback:
+              evaluation.vocabularyFeedback ?? [],
+          },
+        });
+
+      // ----------------------------------------
+      // NOTE:
+      // Speaking does NOT affect UserProgress
+      // overallProgress.
+      // ----------------------------------------
+
+      return {
+        submission,
+
+        result: {
+          transcript:
+            evaluation.transcript,
+
+          score,
+
+          grammarScore:
+            evaluation.grammarScore,
+
+          vocabularyScore:
+            evaluation.vocabularyScore,
+
+          fluencyScore:
+            evaluation.fluencyScore,
+
+          feedback:
+            evaluation.feedback,
+
+          correctedText:
+            evaluation.correctedText,
+
+          grammarErrors:
+            evaluation.grammarErrors,
+
+          vocabularyFeedback:
+            evaluation.vocabularyFeedback,
+        },
+      };
+    } catch (error) {
+      // Gemini failed after Cloudinary upload.
+      // Delete uploaded audio to avoid orphan files.
+
+      if (uploadedAudio?.public_id) {
+        try {
+          await cloudinary.uploader.destroy(
+            uploadedAudio.public_id,
+            {
+              resource_type: "video",
+            }
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Speaking audio cleanup failed:",
+            cleanupError
+          );
+        }
+      }
+
+      throw error;
+    }
+  };

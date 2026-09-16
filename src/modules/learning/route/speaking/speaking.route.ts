@@ -1,6 +1,10 @@
 import { Router } from "express";
 
 import {
+  audioUpload,
+} from "../../../../lib/upload";
+
+import {
   authenticate,
   authorizeAdmin,
 } from "../../../../middlewares/auth.middleware";
@@ -11,6 +15,7 @@ import {
   getSpeakingPracticeByIdController,
   updateSpeakingPracticeController,
   deleteSpeakingPracticeController,
+  submitSpeakingAnswerController,
 } from "../../controller/speaking/speaking.controller";
 
 const router = Router();
@@ -50,6 +55,13 @@ router.delete(
   authenticate,
   authorizeAdmin,
   deleteSpeakingPracticeController
+);
+
+router.post(
+  "/submit",
+  authenticate,
+  audioUpload.single("audio"),
+  submitSpeakingAnswerController
 );
 
 export default router;

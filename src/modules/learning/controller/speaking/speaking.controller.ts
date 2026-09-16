@@ -1,11 +1,16 @@
 import { Request, Response } from "express";
 
 import {
+  AuthRequest,
+} from "../../../../middlewares/auth.middleware";
+
+import {
   createSpeakingPractice,
   getSpeakingPracticesByChapter,
   getSpeakingPracticeById,
   updateSpeakingPractice,
   deleteSpeakingPractice,
+   submitSpeakingAnswer,
 } from "../../service/speaking/speaking.service";
 
 export const createSpeakingPracticeController =
@@ -196,6 +201,65 @@ export const deleteSpeakingPracticeController =
           error instanceof Error
             ? error.message
             : "Failed to delete speaking practice",
+      });
+    }
+  };
+
+
+  export const submitSpeakingAnswerController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const { practiceId } =
+        req.body;
+
+      if (!practiceId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "practiceId is required",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Audio file is required",
+        });
+      }
+
+      const result =
+        await submitSpeakingAnswer({
+          userId: req.user.userId,
+          practiceId,
+          audioBuffer:
+            req.file.buffer,
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Speaking answer submitted successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit speaking answer",
       });
     }
   };
