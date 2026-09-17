@@ -9,6 +9,10 @@ import {
 
 import cloudinary from "../../../../lib/cloudinary";
 
+import {
+  generateGermanConversationReply,
+} from "./gemini-conversation.service";
+
 interface CreateSpeakingPracticeInput {
   title: string;
   instruction: string;
@@ -319,4 +323,202 @@ export const submitSpeakingAnswer =
 
       throw error;
     }
+  };
+
+
+  export const startSpeakingConversation =
+  async (data: {
+    userId: string;
+    practiceId: string;
+  }) => {
+    const practice =
+      await prisma.speakingPractice.findUnique({
+        where: {
+          id: data.practiceId,
+        },
+      });
+
+    if (!practice) {
+      throw new Error(
+        "Speaking practice not found"
+      );
+    }
+
+    if (practice.type !== "AI_CONVERSATION") {
+      throw new Error(
+        "This practice is not an AI conversation"
+      );
+    }
+
+    const conversation =
+      await prisma.speakingConversation.create({
+        data: {
+          userId: data.userId,
+          practiceId: data.practiceId,
+        },
+      });
+
+    const openingMessage =
+      await generateGermanConversationReply({
+        practice: {
+          title: practice.title,
+          instruction:
+            practice.instruction,
+          prompt: practice.prompt,
+        },
+        history: [],
+        userMessage:
+          "Start the conversation.",
+      });
+
+    const modelMessage =
+      await prisma.speakingConversationMessage.create(
+        {
+          data: {
+            conversationId:
+              conversation.id,
+            role: "model",
+            content: openingMessage,
+          },
+        }
+      );
+
+    return {
+      conversation,
+      message: modelMessage,
+    };
+  };
+
+export const sendSpeakingConversationMessage =
+  async (data: {
+    userId: string;
+    conversationId: string;
+    userMessage: string;
+  }) => {
+    const conversation =
+      await prisma.speakingConversation.findUnique({
+        where: {
+          id: data.conversationId,
+        },
+        include: {
+          practice: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error(
+        "Conversation not found"
+      );
+    }
+
+    if (
+      conversation.userId !== data.userId
+    ) {
+      throw new Error(
+        "You are not allowed to access this conversation"
+      );
+    }
+
+    if (
+      conversation.practice.type !==
+      "AI_CONVERSATION"
+    ) {
+      throw new Error(
+        "This is not an AI conversation"
+      );
+    }
+
+    const userMessage =
+      data.userMessage.trim();
+
+    if (!userMessage) {
+      throw new Error(
+        "Message cannot be empty"
+      );
+    }
+
+    // ------------------------------------------
+    // Existing history
+    // ------------------------------------------
+
+    const messages =
+      await prisma.speakingConversationMessage.findMany(
+        {
+          where: {
+            conversationId:
+              conversation.id,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        }
+      );
+
+    const history =
+      messages.map((message) => ({
+        role:
+          message.role === "user"
+            ? ("user" as const)
+            : ("model" as const),
+        content: message.content,
+      }));
+
+    // ------------------------------------------
+    // Save user message
+    // ------------------------------------------
+
+    await prisma.speakingConversationMessage.create(
+      {
+        data: {
+          conversationId:
+            conversation.id,
+          role: "user",
+          content: userMessage,
+        },
+      }
+    );
+
+    // ------------------------------------------
+    // Gemini reply
+    // ------------------------------------------
+
+    const reply =
+      await generateGermanConversationReply({
+        practice: {
+          title:
+            conversation.practice.title,
+          instruction:
+            conversation.practice
+              .instruction,
+          prompt:
+            conversation.practice.prompt,
+        },
+        history,
+        userMessage,
+      });
+
+    // ------------------------------------------
+    // Save AI response
+    // ------------------------------------------
+
+    const aiMessage =
+      await prisma.speakingConversationMessage.create(
+        {
+          data: {
+            conversationId:
+              conversation.id,
+            role: "model",
+            content: reply,
+          },
+        }
+      );
+
+    return {
+      userMessage: {
+        content: userMessage,
+      },
+      aiMessage,
+      conversationId:
+        conversation.id,
+    };
   };

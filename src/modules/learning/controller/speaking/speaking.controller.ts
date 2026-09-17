@@ -11,6 +11,8 @@ import {
   updateSpeakingPractice,
   deleteSpeakingPractice,
    submitSpeakingAnswer,
+  startSpeakingConversation,
+  sendSpeakingConversationMessage,
 } from "../../service/speaking/speaking.service";
 
 export const createSpeakingPracticeController =
@@ -260,6 +262,108 @@ export const deleteSpeakingPracticeController =
           error instanceof Error
             ? error.message
             : "Failed to submit speaking answer",
+      });
+    }
+  };
+
+
+export const startSpeakingConversationController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const { practiceId } =
+        req.body;
+
+      if (!practiceId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "practiceId is required",
+        });
+      }
+
+      const result =
+        await startSpeakingConversation({
+          userId: req.user.userId,
+          practiceId,
+        });
+
+      return res.status(201).json({
+        success: true,
+        ...result,
+        message: "Speaking conversation started successfully",
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to start speaking conversation",
+      });
+    }
+  };
+
+  export const sendSpeakingConversationMessageController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        conversationId,
+        message,
+      } = req.body;
+
+      if (
+        !conversationId ||
+        message === undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "conversationId and message are required",
+        });
+      }
+
+      const result =
+        await sendSpeakingConversationMessage({
+          userId: req.user.userId,
+          conversationId,
+          userMessage: String(message),
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Conversation message sent successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to send conversation message",
       });
     }
   };

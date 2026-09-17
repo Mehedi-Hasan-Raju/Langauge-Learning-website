@@ -16,6 +16,8 @@ import {
   updateSpeakingPracticeController,
   deleteSpeakingPracticeController,
   submitSpeakingAnswerController,
+  startSpeakingConversationController,
+  sendSpeakingConversationMessageController,
 } from "../../controller/speaking/speaking.controller";
 
 const router = Router();
@@ -64,4 +66,15 @@ router.post(
   submitSpeakingAnswerController
 );
 
+router.post(
+  "/conversation/start",
+  authenticate,
+  startSpeakingConversationController
+);
+
+router.post(
+  "/conversation/message",
+  authenticate,
+  sendSpeakingConversationMessageController
+);
 export default router;
