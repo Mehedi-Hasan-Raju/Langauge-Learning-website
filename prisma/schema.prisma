@@ -48,17 +48,18 @@ model User {
   emailVerified Boolean @default(false)
   googleId      String? @unique
 
-  progress            UserProgress[]
-  grammarSubmissions  GrammarSubmission[]
-  writingSubmissions  WritingSubmission[]
-  speakingSubmissions SpeakingSubmission[]
-  listeningSubmissions ListeningSubmission[]
-  sentenceSubmissions SentenceSubmission[]
-  subscriptions       Subscription[]
-  payments            Payment[]
-  blogLikes           BlogLike[]
-  verificationTokens  EmailVerificationToken[]
-  passwordResetTokens PasswordResetToken[]
+  progress              UserProgress[]
+  grammarSubmissions    GrammarSubmission[]
+  writingSubmissions    WritingSubmission[]
+  speakingSubmissions   SpeakingSubmission[]
+  speakingConversations SpeakingConversation[]
+  listeningSubmissions  ListeningSubmission[]
+  sentenceSubmissions   SentenceSubmission[]
+  subscriptions         Subscription[]
+  payments              Payment[]
+  blogLikes             BlogLike[]
+  verificationTokens    EmailVerificationToken[]
+  passwordResetTokens   PasswordResetToken[]
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -274,11 +275,11 @@ model SentenceExercise {
   answer      String
   explanation String?
 
-  chapterId String
-  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId   String
+  chapter     Chapter              @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   submissions SentenceSubmission[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   @@unique([chapterId, taskNo])
   @@index([chapterId])
@@ -291,14 +292,14 @@ model SentenceSubmission {
   id String @id @default(uuid())
 
   userId String
-  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   exerciseId String
-  exercise SentenceExercise @relation( fields: [exerciseId],references: [id],onDelete: Cascade)
+  exercise   SentenceExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
   userAnswer String
-  isCorrect Boolean
-  score Float
+  isCorrect  Boolean
+  score      Float
 
   createdAt DateTime @default(now())
 
@@ -406,8 +407,8 @@ model ListeningTask {
   explanation String?
 
   listeningExerciseId String
-  submissions ListeningSubmission[]
-  listeningExercise ListeningExercise @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
+  submissions         ListeningSubmission[]
+  listeningExercise   ListeningExercise     @relation(fields: [listeningExerciseId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -423,14 +424,14 @@ model ListeningSubmission {
   id String @id @default(uuid())
 
   userId String
-  user User @relation( fields: [userId], references: [id],onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   taskId String
-  task ListeningTask @relation(fields: [taskId],references: [id],onDelete: Cascade)
+  task   ListeningTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   userAnswer String
-  isCorrect Boolean
-  score Float
+  isCorrect  Boolean
+  score      Float
 
   createdAt DateTime @default(now())
 
@@ -438,8 +439,6 @@ model ListeningSubmission {
   @@index([taskId])
   @@index([userId, taskId])
 }
-
-
 
 // ========================================
 // SPRECHEN / SPEAKING PRACTICE
@@ -461,13 +460,50 @@ model SpeakingPractice {
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
-  submissions SpeakingSubmission[]
+  submissions   SpeakingSubmission[]
+  conversations SpeakingConversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([chapterId])
   @@index([chapterId, type])
+}
+
+//========================================
+//========================================
+model SpeakingConversation {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  practiceId String
+  practice   SpeakingPractice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  messages SpeakingConversationMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([practiceId])
+  @@index([userId, practiceId])
+}
+
+model SpeakingConversationMessage {
+  id String @id @default(uuid())
+
+  conversationId String
+  conversation   SpeakingConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    String
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
 }
 
 // ========================================
