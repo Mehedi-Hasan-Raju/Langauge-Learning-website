@@ -1,4 +1,5 @@
 import { prisma } from "../../../../lib/prisma";
+
 import {
   uploadSpeakingAudio,
 } from "../../../../lib/cloudinary-speaking";
@@ -12,6 +13,10 @@ import cloudinary from "../../../../lib/cloudinary";
 import {
   generateGermanConversationReply,
 } from "./gemini-conversation.service";
+
+import {
+  transcribeAndReplyToVoice,
+} from "./gemini-voice-conversation.service";
 
 interface CreateSpeakingPracticeInput {
   title: string;
@@ -524,4 +529,194 @@ export const sendSpeakingConversationMessage =
       conversationId:
         conversation.id,
     };
+  };
+
+
+export const sendVoiceConversationMessage =
+  async (data: {
+    userId: string;
+    conversationId: string;
+    audioBuffer: Buffer;
+    mimeType: string;
+  }) => {
+    const conversation =
+      await prisma.speakingConversation.findUnique({
+        where: {
+          id: data.conversationId,
+        },
+        include: {
+          practice: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error(
+        "Conversation not found"
+      );
+    }
+
+    if (
+      conversation.userId !== data.userId
+    ) {
+      throw new Error(
+        "You are not allowed to access this conversation"
+      );
+    }
+
+    if (
+      conversation.practice.type !==
+      "AI_CONVERSATION"
+    ) {
+      throw new Error(
+        "This is not an AI conversation"
+      );
+    }
+
+    if (!data.audioBuffer.length) {
+      throw new Error(
+        "Audio file is empty"
+      );
+    }
+
+    // ------------------------------------------
+    // Upload user's voice to Cloudinary
+    // ------------------------------------------
+
+    const uploadedAudio =
+      await uploadSpeakingAudio(
+        data.audioBuffer,
+        data.mimeType
+      );
+
+    try {
+      // ----------------------------------------
+      // Get conversation history
+      // ----------------------------------------
+
+      const messages =
+        await prisma.speakingConversationMessage.findMany(
+          {
+            where: {
+              conversationId:
+                conversation.id,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          }
+        );
+
+      const history =
+        messages.map((message) => ({
+          role:
+            message.role === "user"
+              ? ("user" as const)
+              : ("model" as const),
+
+          content: message.content,
+        }));
+
+      // ----------------------------------------
+      // Gemini transcribe + reply
+      // ----------------------------------------
+
+      const result =
+        await transcribeAndReplyToVoice({
+          audioBuffer:
+            data.audioBuffer,
+
+          mimeType: data.mimeType,
+
+          practice: {
+            title:
+              conversation.practice.title,
+
+            instruction:
+              conversation.practice
+                .instruction,
+
+            prompt:
+              conversation.practice.prompt,
+          },
+
+          history,
+        });
+
+      // ----------------------------------------
+      // Save user transcript
+      // ----------------------------------------
+
+      const userMessage =
+        await prisma.speakingConversationMessage.create(
+          {
+            data: {
+              conversationId:
+                conversation.id,
+
+              role: "user",
+
+              content:
+                result.transcript,
+            },
+          }
+        );
+
+      // ----------------------------------------
+      // Save AI reply
+      // ----------------------------------------
+
+      const aiMessage =
+        await prisma.speakingConversationMessage.create(
+          {
+            data: {
+              conversationId:
+                conversation.id,
+
+              role: "model",
+
+              content:
+                result.reply,
+            },
+          }
+        );
+
+      return {
+        audioUrl:
+          uploadedAudio.secure_url,
+
+        transcript:
+          result.transcript,
+
+        reply:
+          result.reply,
+
+        correction:
+          result.correction,
+
+        userMessage,
+        aiMessage,
+
+        conversationId:
+          conversation.id,
+      };
+    } catch (error) {
+      // Remove Cloudinary audio
+      if (uploadedAudio?.public_id) {
+        try {
+          await cloudinary.uploader.destroy(
+            uploadedAudio.public_id,
+            {
+              resource_type: "video",
+            }
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Voice audio cleanup failed:",
+            cleanupError
+          );
+        }
+      }
+
+      throw error;
+    }
   };

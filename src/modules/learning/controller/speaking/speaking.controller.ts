@@ -13,6 +13,7 @@ import {
    submitSpeakingAnswer,
   startSpeakingConversation,
   sendSpeakingConversationMessage,
+  sendVoiceConversationMessage,
 } from "../../service/speaking/speaking.service";
 
 export const createSpeakingPracticeController =
@@ -247,6 +248,8 @@ export const deleteSpeakingPracticeController =
           practiceId,
           audioBuffer:
             req.file.buffer,
+          mimeType:
+            req.file.mimetype,
         });
 
       return res.status(200).json({
@@ -364,6 +367,71 @@ export const startSpeakingConversationController =
           error instanceof Error
             ? error.message
             : "Failed to send conversation message",
+      });
+    }
+  };
+
+
+export const sendVoiceConversationMessageController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        conversationId,
+      } = req.body;
+
+      if (!conversationId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "conversationId is required",
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Audio file is required",
+        });
+      }
+
+      const result =
+        await sendVoiceConversationMessage({
+          userId: req.user.userId,
+
+          conversationId,
+
+          audioBuffer:
+            req.file.buffer,
+
+          mimeType:
+            req.file.mimetype,
+        });
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Voice conversation message processed successfully",
+        ...result,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to process voice conversation",
       });
     }
   };

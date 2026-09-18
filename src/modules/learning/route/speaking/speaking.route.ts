@@ -18,6 +18,7 @@ import {
   submitSpeakingAnswerController,
   startSpeakingConversationController,
   sendSpeakingConversationMessageController,
+  sendVoiceConversationMessageController,
 } from "../../controller/speaking/speaking.controller";
 
 const router = Router();
@@ -76,5 +77,12 @@ router.post(
   "/conversation/message",
   authenticate,
   sendSpeakingConversationMessageController
+);
+
+router.post(
+  "/conversation/voice",
+  authenticate,
+  audioUpload.single("audio"),
+  sendVoiceConversationMessageController
 );
 export default router;
