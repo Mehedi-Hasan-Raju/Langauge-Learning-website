@@ -1,7 +1,8 @@
 import cloudinary from "./cloudinary";
 
 export const uploadSpeakingAudio = (
-  buffer: Buffer
+  buffer: Buffer,
+  mimeType: string
 ): Promise<{
   secure_url: string;
   public_id: string;
@@ -17,7 +18,6 @@ export const uploadSpeakingAudio = (
           folder: "german-learning/speaking",
           resource_type: "video",
           public_id: publicId,
-          format: "mp3",
         },
         (error, result) => {
           if (error) {
@@ -27,7 +27,9 @@ export const uploadSpeakingAudio = (
 
           if (!result) {
             reject(
-              new Error("Cloudinary upload failed")
+              new Error(
+                "Cloudinary upload failed"
+              )
             );
             return;
           }

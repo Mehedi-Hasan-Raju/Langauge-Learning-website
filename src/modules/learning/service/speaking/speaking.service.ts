@@ -183,6 +183,7 @@ export const submitSpeakingAnswer =
     userId: string;
     practiceId: string;
     audioBuffer: Buffer;
+    mimeType: string;
   }) => {
     const practice =
       await prisma.speakingPractice.findUnique({
@@ -209,7 +210,8 @@ export const submitSpeakingAnswer =
 
     const uploadedAudio =
       await uploadSpeakingAudio(
-        data.audioBuffer
+        data.audioBuffer,
+        data.mimeType
       );
 
     try {
@@ -220,6 +222,7 @@ export const submitSpeakingAnswer =
       const evaluation =
         await evaluateGermanSpeaking(
           data.audioBuffer,
+          data.mimeType,
           {
             title: practice.title,
             instruction:

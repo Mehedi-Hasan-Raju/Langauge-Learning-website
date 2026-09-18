@@ -123,6 +123,7 @@ const speakingEvaluationSchema = {
 
 export const evaluateGermanSpeaking = async (
   audioBuffer: Buffer,
+  mimeType: string,
   practice: {
     title: string;
     instruction: string;
@@ -194,7 +195,7 @@ Return ONLY valid JSON matching the provided schema.
         },
         {
           inlineData: {
-            mimeType: "audio/mpeg",
+            mimeType,
             data: base64Audio,
           },
         },
