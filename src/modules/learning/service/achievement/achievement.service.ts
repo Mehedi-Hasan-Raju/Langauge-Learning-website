@@ -75,5 +75,201 @@ export const ACHIEVEMENTS = {
     description:
       "Maintain a 15-day learning streak.",
   },
-  
+
 } as const;
+
+export const unlockAchievement = async (
+  userId: string,
+  achievementKey: string
+) => {
+  const existing =
+    await prisma.userAchievement.findUnique({
+      where: {
+        userId_achievementKey: {
+          userId,
+          achievementKey,
+        },
+      },
+    });
+
+  if (existing) {
+    return existing;
+  }
+
+  return await prisma.userAchievement.create({
+    data: {
+      userId,
+      achievementKey,
+    },
+  });
+};
+
+export const checkTaskAchievements = async (
+  userId: string,
+  skill: string
+) => {
+  // ------------------------------------------
+  // Total completed learning activities
+  // ------------------------------------------
+
+  const totalTasks =
+    await prisma.activityRecord.count({
+      where: {
+        userId,
+      },
+    });
+
+  // ------------------------------------------
+  // First Lesson
+  // ------------------------------------------
+
+  if (totalTasks >= 1) {
+    await unlockAchievement(
+      userId,
+      ACHIEVEMENTS.FIRST_LESSON.key
+    );
+  }
+
+  // ------------------------------------------
+  // First skill achievements
+  // ------------------------------------------
+
+  const skillAchievementMap: Record<
+    string,
+    string | undefined
+  > = {
+    GRAMMAR:
+      ACHIEVEMENTS.FIRST_GRAMMAR.key,
+
+    VOCABULARY:
+      ACHIEVEMENTS.FIRST_VOCABULARY.key,
+
+    LISTENING:
+      ACHIEVEMENTS.FIRST_LISTENING.key,
+
+    SCHREIBEN:
+      ACHIEVEMENTS.FIRST_WRITING.key,
+
+    SENTENCE_BUILDING:
+      ACHIEVEMENTS.FIRST_SENTENCE.key,
+
+    SPRECHEN:
+      ACHIEVEMENTS.FIRST_SPEAKING.key,
+  };
+
+  const skillAchievement =
+    skillAchievementMap[skill];
+
+  if (skillAchievement) {
+    const skillTaskCount =
+      await prisma.activityRecord.count({
+        where: {
+          userId,
+          skill: skill as any,
+        },
+      });
+
+    if (skillTaskCount >= 1) {
+      await unlockAchievement(
+        userId,
+        skillAchievement
+      );
+    }
+  }
+
+  // ------------------------------------------
+  // 10 Tasks
+  // ------------------------------------------
+
+  if (totalTasks >= 10) {
+    await unlockAchievement(
+      userId,
+      ACHIEVEMENTS.TEN_TASKS.key
+    );
+  }
+
+  // ------------------------------------------
+  // 50 Tasks
+  // ------------------------------------------
+
+  if (totalTasks >= 50) {
+    await unlockAchievement(
+      userId,
+      ACHIEVEMENTS.FIFTY_TASKS.key
+    );
+  }
+
+  // ------------------------------------------
+  // Return currently unlocked achievements
+  // ------------------------------------------
+
+  return await prisma.userAchievement.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      unlockedAt: "desc",
+    },
+  });
+};
+
+export const checkStreakAchievements =
+  async (userId: string) => {
+    const profile =
+      await prisma.userProfile.findUnique({
+        where: {
+          userId,
+        },
+      });
+
+    if (!profile) {
+      return;
+    }
+
+    if (profile.currentStreak >= 7) {
+      await unlockAchievement(
+        userId,
+        ACHIEVEMENTS.SEVEN_DAY_STREAK.key
+      );
+    }
+  };
+
+
+  export const getUserAchievements = async (
+  userId: string
+) => {
+  const unlocked =
+    await prisma.userAchievement.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        unlockedAt: "desc",
+      },
+    });
+
+  const unlockedKeys = new Set(
+    unlocked.map(
+      (item) => item.achievementKey
+    )
+  );
+
+  return Object.values(
+    ACHIEVEMENTS
+  ).map((achievement) => ({
+    key: achievement.key,
+    title: achievement.title,
+    description:
+      achievement.description,
+
+    unlocked:
+      unlockedKeys.has(achievement.key),
+
+    unlockedAt:
+      unlocked.find(
+        (item) =>
+          item.achievementKey ===
+          achievement.key
+      )?.unlockedAt ?? null,
+  }));
+};
