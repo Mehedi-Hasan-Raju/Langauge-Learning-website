@@ -109,21 +109,47 @@ export const checkTaskAchievements = async (
   skill: string
 ) => {
   // ------------------------------------------
-  // Total completed learning activities
+  // Get learning activity records
   // ------------------------------------------
 
-  const totalTasks =
-    await prisma.activityRecord.count({
+  const activities =
+    await prisma.activityRecord.findMany({
       where: {
         userId,
+        referenceId: {
+          not: null,
+        },
+      },
+      select: {
+        skill: true,
+        referenceId: true,
       },
     });
 
   // ------------------------------------------
-  // First Lesson
+  // Count unique completed learning tasks
   // ------------------------------------------
 
-  if (totalTasks >= 1) {
+  const uniqueTasks = new Set<string>();
+
+  for (const activity of activities) {
+    if (!activity.referenceId) {
+      continue;
+    }
+
+    uniqueTasks.add(
+      `${activity.skill}:${activity.referenceId}`
+    );
+  }
+
+  const totalUniqueTasks =
+    uniqueTasks.size;
+
+  // ------------------------------------------
+  // FIRST LESSON
+  // ------------------------------------------
+
+  if (totalUniqueTasks >= 1) {
     await unlockAchievement(
       userId,
       ACHIEVEMENTS.FIRST_LESSON.key
@@ -131,7 +157,7 @@ export const checkTaskAchievements = async (
   }
 
   // ------------------------------------------
-  // First skill achievements
+  // FIRST SKILL ACHIEVEMENTS
   // ------------------------------------------
 
   const skillAchievementMap: Record<
@@ -161,15 +187,21 @@ export const checkTaskAchievements = async (
     skillAchievementMap[skill];
 
   if (skillAchievement) {
-    const skillTaskCount =
-      await prisma.activityRecord.count({
-        where: {
-          userId,
-          skill: skill as any,
-        },
-      });
+    const uniqueSkillTasks =
+      new Set<string>();
 
-    if (skillTaskCount >= 1) {
+    for (const activity of activities) {
+      if (
+        activity.skill === skill &&
+        activity.referenceId
+      ) {
+        uniqueSkillTasks.add(
+          activity.referenceId
+        );
+      }
+    }
+
+    if (uniqueSkillTasks.size >= 1) {
       await unlockAchievement(
         userId,
         skillAchievement
@@ -178,10 +210,10 @@ export const checkTaskAchievements = async (
   }
 
   // ------------------------------------------
-  // 10 Tasks
+  // 10 UNIQUE TASKS
   // ------------------------------------------
 
-  if (totalTasks >= 10) {
+  if (totalUniqueTasks >= 10) {
     await unlockAchievement(
       userId,
       ACHIEVEMENTS.TEN_TASKS.key
@@ -189,10 +221,10 @@ export const checkTaskAchievements = async (
   }
 
   // ------------------------------------------
-  // 50 Tasks
+  // 50 UNIQUE TASKS
   // ------------------------------------------
 
-  if (totalTasks >= 50) {
+  if (totalUniqueTasks >= 50) {
     await unlockAchievement(
       userId,
       ACHIEVEMENTS.FIFTY_TASKS.key
@@ -200,7 +232,7 @@ export const checkTaskAchievements = async (
   }
 
   // ------------------------------------------
-  // Return currently unlocked achievements
+  // Return achievements
   // ------------------------------------------
 
   return await prisma.userAchievement.findMany({
