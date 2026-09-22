@@ -698,15 +698,54 @@ model VisaChecklistItem {
 // ========================================
 
 model Ausbildung {
-  id          String @id @default(uuid())
-  name        String @unique
-  slug        String @unique
-  description String
+  id String @id @default(uuid())
+
+  name             String
+  shortDescription String
+
+  applicationDocuments AusbildungApplicationDocument[]
+  visaDocuments        AusbildungVisaDocument[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([name])
+}
+
+model AusbildungApplicationDocument {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+  required    Boolean @default(true)
+  order       Int     @default(0)
+
+  ausbildungId String
+  ausbildung   Ausbildung @relation(fields: [ausbildungId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ausbildungId])
+  @@index([ausbildungId, order])
+}
+
+model AusbildungVisaDocument {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+  required    Boolean @default(true)
+  order       Int     @default(0)
+
+  ausbildungId String
+  ausbildung   Ausbildung @relation(fields: [ausbildungId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ausbildungId])
+  @@index([ausbildungId, order])
 }
 
 // ========================================
