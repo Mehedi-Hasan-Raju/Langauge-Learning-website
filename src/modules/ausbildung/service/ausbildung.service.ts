@@ -53,6 +53,37 @@ export const getAusbildungen = async () => {
   });
 };
 
+export const getAusbildungById = async (
+  id: string
+) => {
+  const ausbildung =
+    await prisma.ausbildung.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        applicationDocuments: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+        visaDocuments: {
+          orderBy: {
+            order: "asc",
+          },
+        },
+      },
+    });
+
+  if (!ausbildung) {
+    throw new Error(
+      "Ausbildung not found"
+    );
+  }
+
+  return ausbildung;
+};
+
 export const updateAusbildung = async (
   id: string,
   data: {
