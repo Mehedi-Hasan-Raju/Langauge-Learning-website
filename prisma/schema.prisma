@@ -60,6 +60,7 @@ model User {
   blogLikes             BlogLike[]
   verificationTokens    EmailVerificationToken[]
   passwordResetTokens   PasswordResetToken[]
+  blogs                 Blog[]
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -622,13 +623,23 @@ model Payment {
 // ========================================
 
 model Blog {
-  id         String  @id @default(uuid())
-  title      String
-  slug       String  @unique
-  excerpt    String?
-  content    String
+  id String @id @default(uuid())
+
+  title            String
+  slug             String @unique
+  shortDescription String
+  content          String
+
   coverImage String?
-  published  Boolean @default(false)
+
+  category String?
+  tags     String[] @default([])
+
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   likes BlogLike[]
 
@@ -636,6 +647,8 @@ model Blog {
   updatedAt DateTime @updatedAt
 
   @@index([published])
+  @@index([category])
+  @@index([authorId])
 }
 
 // ========================================
