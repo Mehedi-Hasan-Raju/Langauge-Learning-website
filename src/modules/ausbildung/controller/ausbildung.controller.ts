@@ -1,4 +1,7 @@
 import { Request, Response } from "express";
+import { imageUpload,} from "../../../lib/upload";
+
+import {uploadAusbildungImage,} from "../../../lib/cloudinary-image";
 
 import {
   createAusbildung,
@@ -37,11 +40,24 @@ export const createAusbildungController =
             "name and shortDescription are required",
         });
       }
+      
+      let imageUrl: string | undefined;
 
+      if (req.file) {
+        const uploadedImage =
+          await uploadAusbildungImage(
+            req.file.buffer
+          );
+
+        imageUrl =
+          uploadedImage.secure_url;
+      }
+       
       const ausbildung =
         await createAusbildung({
           name,
           shortDescription,
+          imageUrl,
         });
 
       return res.status(201).json({
@@ -136,7 +152,13 @@ export const getAusbildungByIdController =
       const ausbildung =
         await updateAusbildung(
           id,
-          req.body
+            {
+            name: req.body.name,
+            shortDescription:
+              req.body.shortDescription,
+            imageBuffer:
+              req.file?.buffer,
+          }
         );
 
       return res.status(200).json({

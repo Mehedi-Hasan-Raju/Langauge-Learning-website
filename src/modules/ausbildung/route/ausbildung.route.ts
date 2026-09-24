@@ -1,6 +1,10 @@
 import { Router } from "express";
 
 import {
+  imageUpload,
+} from "../../../lib/upload";
+
+import {
   authenticate,
   authorizeAdmin,
 } from "../../../middlewares/auth.middleware";
@@ -33,6 +37,7 @@ router.post(
   "/",
   authenticate,
   authorizeAdmin,
+  imageUpload.single("image"),
   createAusbildungController
 );
 
@@ -50,6 +55,7 @@ router.patch(
   "/:id",
   authenticate,
   authorizeAdmin,
+  imageUpload.single("image"),
   updateAusbildungController
 );
 
@@ -57,6 +63,7 @@ router.delete(
   "/:id",
   authenticate,
   authorizeAdmin,
+  imageUpload.single("image"),
   deleteAusbildungController
 );
 
