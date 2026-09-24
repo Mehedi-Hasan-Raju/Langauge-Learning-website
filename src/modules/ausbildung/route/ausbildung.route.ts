@@ -63,7 +63,6 @@ router.delete(
   "/:id",
   authenticate,
   authorizeAdmin,
-  imageUpload.single("image"),
   deleteAusbildungController
 );
 
