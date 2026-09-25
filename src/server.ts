@@ -14,6 +14,8 @@ import sentenceRoutes from "./modules/learning/route/sentence/sentence.route";
 import speakingRoutes from "./modules/learning/route/speaking/speaking.route";
 import achievementRoutes from "./modules/learning/route/achievement/achievement.route";
 import ausbildungRoutes from "./modules/ausbildung/route/ausbildung.route";
+import blogRoutes from "./modules/blog/route/blog.route";
+
 
 const startServer = async () => {
   try {
@@ -50,4 +52,5 @@ app.use("/api/learning/sentence",sentenceRoutes);
 app.use( "/api/learning/speaking",speakingRoutes);
 app.use("/api/user/achievements",achievementRoutes);
 app.use("/api/ausbildung",ausbildungRoutes);
+app.use( "/api/blogs",blogRoutes);
 startServer();
