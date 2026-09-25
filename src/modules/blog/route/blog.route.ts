@@ -5,9 +5,7 @@ import {
   authorizeAdmin,
 } from "../../../middlewares/auth.middleware";
 
-import {
-  imageUpload,
-} from "../../../lib/upload";
+import {imageUpload,} from "../../../lib/upload";
 
 import {
   createBlogController,
@@ -16,6 +14,9 @@ import {
   getBlogBySlugController,
   updateBlogController,
   deleteBlogController,
+  likeBlogController,
+  unlikeBlogController,
+  getBlogLikeStatusController,
 } from "../controller/blog.controller";
 
 const router = Router();
@@ -61,5 +62,23 @@ router.delete(
   authorizeAdmin,
   deleteBlogController
 );
+//like count
 
+router.post(
+  "/:id/like",
+  authenticate,
+  likeBlogController
+);
+
+router.delete(
+  "/:id/like",
+  authenticate,
+  unlikeBlogController
+);
+
+router.get(
+  "/:id/like-status",
+  authenticate,
+  getBlogLikeStatusController
+);
 export default router;

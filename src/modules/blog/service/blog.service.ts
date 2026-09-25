@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import cloudinary from "../../../lib/cloudinary";
 import { uploadBlogImage } from "../../../lib/cloudinary-image";
+import { string } from "zod";
 
 const createSlug = (title: string) => {
   return title
@@ -387,4 +388,127 @@ export const deleteBlog = async (
       id,
     },
   });
+};
+
+
+export const likeBlog = async (
+  userId: string,
+  blogId: string
+) => {
+  const blog = await prisma.blog.findUnique({
+    where: {
+      id: blogId,
+    },
+  });
+
+  if (!blog) {
+    throw new Error("Blog not Found");
+  }
+
+  if (!blog.published) {
+    throw new Error ("You cannot like an Unpublished blog");
+  }
+ const existingLike =
+    await prisma.blogLike.findUnique({
+      where: {
+        userId_blogId: {
+          userId,
+          blogId,
+        },
+      },
+    });
+
+  if(existingLike) {
+    return {
+      liked: true,
+      message: "Blog alrready liked",
+    };
+  }
+    await prisma.blogLike.create({
+    data: {
+      userId,
+      blogId,
+    },
+  });
+
+  return {
+    liked: true,
+    message: "Blog liked successfully",
+  };
+};
+  
+
+export const unlikeBlog = async (
+  userId: string,
+  blogId: string
+) => {
+  const existingLike =
+    await prisma.blogLike.findUnique({
+      where: {
+        userId_blogId: {
+          userId,
+          blogId,
+        },
+      },
+    });
+
+  if (!existingLike) {
+    return {
+      liked: false,
+      message: "Blog is not liked",
+    };
+  }
+
+  await prisma.blogLike.delete({
+    where: {
+      userId_blogId: {
+        userId,
+        blogId,
+      },
+    },
+  });
+
+  return {
+    liked: false,
+    message: "Blog unliked successfully",
+  };
+};
+
+export const getBlogLikeStatus = async (
+  userId: string,
+  blogId: string
+) => {
+  const blog = await prisma.blog.findUnique({
+    where: {
+      id: blogId,
+    },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          likes: true,
+        },
+      },
+    },
+  });
+
+  if (!blog) {
+    throw new Error("Blog not found");
+  }
+
+  const existingLike =
+    await prisma.blogLike.findUnique({
+      where: {
+        userId_blogId: {
+          userId,
+          blogId,
+        },
+      },
+    });
+
+  return {
+    blogId,
+    liked: Boolean(existingLike),
+    likeCount: blog._count.likes,
+  };
 };

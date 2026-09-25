@@ -7,6 +7,9 @@ import {
   getBlogBySlug,
   updateBlog,
   deleteBlog,
+  likeBlog,
+  unlikeBlog,
+  getBlogLikeStatus,
 } from "../service/blog.service";
 
 import {
@@ -298,6 +301,134 @@ export const deleteBlogController =
           error instanceof Error
             ? error.message
             : "Failed to delete blog",
+      });
+    }
+  };
+
+
+
+export const likeBlogController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id } = req.params;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog id",
+      });
+    }
+
+    const result = await likeBlog(
+      req.user.userId,
+      id
+    );
+
+    return res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to like blog",
+    });
+  }
+};
+
+
+export const unlikeBlogController = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const { id } = req.params;
+
+    if (typeof id !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog id",
+      });
+    }
+
+    const result = await unlikeBlog(
+      req.user.userId,
+      id
+    );
+
+    return res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to unlike blog",
+    });
+  }
+};
+
+export const getBlogLikeStatusController =
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "Authentication required",
+        });
+      }
+
+      const { id } = req.params;
+
+      if (typeof id !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid blog id",
+        });
+      }
+
+      const result =
+        await getBlogLikeStatus(
+          req.user.userId,
+          id
+        );
+
+      return res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to get blog like status",
       });
     }
   };
