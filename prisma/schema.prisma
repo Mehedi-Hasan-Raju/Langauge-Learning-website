@@ -675,16 +675,20 @@ model BlogLike {
 // VISA CHECKLIST
 // ========================================
 
-model VisaCategory {
-  id          String  @id @default(uuid())
-  name        String  @unique
+model VisaChecklistCategory {
+  id          String               @id @default(uuid())
+  title       String
   description String?
+  order       Int                  @default(0)
 
-  items VisaChecklistItem[]
+  items       VisaChecklistItem[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([order])
 }
+
 
 // ========================================
 // VISA CHECKLIST ITEM
@@ -698,7 +702,7 @@ model VisaChecklistItem {
   order       Int
 
   categoryId String
-  category   VisaCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category    VisaChecklistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

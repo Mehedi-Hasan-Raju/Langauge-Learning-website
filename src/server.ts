@@ -15,7 +15,7 @@ import speakingRoutes from "./modules/learning/route/speaking/speaking.route";
 import achievementRoutes from "./modules/learning/route/achievement/achievement.route";
 import ausbildungRoutes from "./modules/ausbildung/route/ausbildung.route";
 import blogRoutes from "./modules/blog/route/blog.route";
-
+import visaChecklistRoutes from "./modules/visa-checklist/route/visa-checklist.route";
 
 const startServer = async () => {
   try {
@@ -53,4 +53,5 @@ app.use( "/api/learning/speaking",speakingRoutes);
 app.use("/api/user/achievements",achievementRoutes);
 app.use("/api/ausbildung",ausbildungRoutes);
 app.use( "/api/blogs",blogRoutes);
+app.use("/api/visa-checklist", visaChecklistRoutes);
 startServer();
