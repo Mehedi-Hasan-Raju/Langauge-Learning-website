@@ -769,21 +769,50 @@ model AusbildungVisaDocument {
 // ========================================
 // OUR SERVICES
 // ========================================
+enum ServiceType {
+  GENERAL
+  EXAM
+}
 
-model Service {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  description String
-  imageUrl    String?
-  order       Int     @default(0)
-  isActive    Boolean @default(true)
+model OurService {
+  id                String      @id @default(uuid())
+  title             String
+  shortDescription  String
+  description       String
+  imageUrl          String?
+  imagePublicId     String?
+  type              ServiceType @default(GENERAL)
+  examName          String?
+  order             Int         @default(0)
+  active            Boolean     @default(true)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   @@index([order])
-  @@index([isActive])
+  @@index([active])
+  @@index([type])
 }
+
+model OurMember {
+  id                String   @id @default(uuid())
+  name              String
+  language          String
+  role              String?
+  shortDescription  String
+  imageUrl          String?
+  imagePublicId     String?
+  order             Int      @default(0)
+  active            Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([order])
+  @@index([active])
+  @@index([language])
+}
+
 
 // ========================================
 // EMAIL VERIFICATION TOKEN
