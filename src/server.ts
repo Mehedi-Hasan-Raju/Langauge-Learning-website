@@ -16,6 +16,9 @@ import achievementRoutes from "./modules/learning/route/achievement/achievement.
 import ausbildungRoutes from "./modules/ausbildung/route/ausbildung.route";
 import blogRoutes from "./modules/blog/route/blog.route";
 import visaChecklistRoutes from "./modules/visa-checklist/route/visa-checklist.route";
+import ourServiceRoutes from "./modules/our-services/route/our-service.route";
+import ourMemberRoutes from "./modules/our-services/route/our-member.route";
+
 
 const startServer = async () => {
   try {
@@ -54,4 +57,7 @@ app.use("/api/user/achievements",achievementRoutes);
 app.use("/api/ausbildung",ausbildungRoutes);
 app.use( "/api/blogs",blogRoutes);
 app.use("/api/visa-checklist", visaChecklistRoutes);
+app.use("/api/our-services", ourServiceRoutes);
+app.use("/api/our-members", ourMemberRoutes);
+
 startServer();
