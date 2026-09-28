@@ -570,23 +570,26 @@ model UserProgress {
 // ========================================
 
 model Subscription {
-  id String @id @default(uuid())
+  id              String             @id @default(uuid())
+  userId          String
+  plan            String             @default("PREMIUM")
+  amount          Decimal            @db.Decimal(10, 2)
+  currency        String             @default("BDT")
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate       DateTime
+  endDate         DateTime
 
-  startDate DateTime
-  endDate   DateTime
+  status          SubscriptionStatus @default(ACTIVE)
 
-  status SubscriptionStatus @default(ACTIVE)
+  user            User               @relation(fields: [userId],references: [id],onDelete: Cascade)
 
-  payments Payment[]
+  payments        Payment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@index([userId])
-  @@index([status])
+  @@index([userId, status])
   @@index([endDate])
 }
 
@@ -595,27 +598,33 @@ model Subscription {
 // ========================================
 
 model Payment {
-  id String @id @default(uuid())
+  id              String          @id @default(uuid())
+  userId          String
+  subscriptionId  String?
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount          Decimal         @db.Decimal(10, 2)
+  currency        String          @default("BDT")
 
-  subscriptionId String?
-  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  status          PaymentStatus   @default(PENDING)
 
-  amount   Decimal @db.Decimal(10, 2)
-  currency String  @default("BDT")
+  provider        String?
+  paymentMethod   String?
+  transactionId   String?
+  paidAt          DateTime?
 
-  status PaymentStatus @default(PENDING)
+  metadata        Json?
 
-  paymentMethod String?
-  transactionId String? @unique
+  user            User            @relation(fields: [userId], references: [id],onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id],onDelete: SetNull)
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([userId])
+  @@index([subscriptionId])
   @@index([status])
+  @@index([transactionId])
 }
 
 // ========================================
