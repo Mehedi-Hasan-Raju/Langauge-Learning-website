@@ -18,7 +18,7 @@ import blogRoutes from "./modules/blog/route/blog.route";
 import visaChecklistRoutes from "./modules/visa-checklist/route/visa-checklist.route";
 import ourServiceRoutes from "./modules/our-services/route/our-service.route";
 import ourMemberRoutes from "./modules/our-services/route/our-member.route";
-
+import subscriptionRoutes from "./modules/subscription/route/subscription.route";
 
 const startServer = async () => {
   try {
@@ -59,5 +59,6 @@ app.use( "/api/blogs",blogRoutes);
 app.use("/api/visa-checklist", visaChecklistRoutes);
 app.use("/api/our-services", ourServiceRoutes);
 app.use("/api/our-members", ourMemberRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 startServer();

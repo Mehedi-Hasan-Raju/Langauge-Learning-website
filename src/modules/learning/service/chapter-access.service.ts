@@ -1,4 +1,7 @@
 import { prisma } from "../../../lib/prisma";
+import {
+  getActivePremiumSubscription,
+} from "../../subscription/service/subscription.service";
 
 type UserRole = "USER" | "ADMIN";
 
@@ -20,7 +23,9 @@ export const checkChapterAccess = async (
     throw new Error("Chapter not found");
   }
 
+  // ==========================================
   // Admin can access everything
+  // ==========================================
   if (userRole === "ADMIN") {
     return {
       allowed: true,
@@ -28,27 +33,10 @@ export const checkChapterAccess = async (
     };
   }
 
-  // Premium chapter → active subscription required
-  if (chapter.accessType === "PREMIUM") {
-    const subscription = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        status: "ACTIVE",
-        endDate: {
-          gt: new Date(),
-        },
-      },
-    });
-
-    if (!subscription) {
-      return {
-        allowed: false,
-        reason: "PREMIUM_REQUIRED",
-      };
-    }
-  }
-
-  // First chapter is always available
+  // ==========================================
+  // Chapter 1 is always available
+  // Chapter 1.1 is also part of Chapter 1
+  // ==========================================
   if (chapter.chapterNo === 1) {
     return {
       allowed: true,
@@ -56,10 +44,32 @@ export const checkChapterAccess = async (
     };
   }
 
+  // ==========================================
+  // Premium chapter → active subscription required
+  // ==========================================
+  if (chapter.accessType === "PREMIUM") {
+    const premiumSubscription =
+      await getActivePremiumSubscription(userId);
+
+    const isPremium = !!premiumSubscription;
+
+    if (!isPremium) {
+      return {
+        allowed: false,
+        reason: "PREMIUM_REQUIRED",
+      };
+    }
+  }
+
+  // ==========================================
   // Find previous logical chapter
+  //
   // Example:
   // Current = Chapter 2
-  // Previous = Chapter 1.1 if it exists
+  // Previous logical chapter = Chapter 1.1
+  // if Chapter 1.1 exists
+  // ==========================================
+
   const previousMainChapter = await prisma.chapter.findFirst({
     where: {
       bookId: chapter.bookId,
@@ -75,15 +85,22 @@ export const checkChapterAccess = async (
 
   let requiredChapterId = previousMainChapter?.id;
 
-  // If previous chapter has no section (1.1), use Chapter 1
+  // ==========================================
+  // If previous section doesn't exist,
+  // use the previous main chapter
+  //
+  // Example:
+  // Current = Chapter 2
+  // No Chapter 1.1
+  // → use Chapter 1
+  // ==========================================
+
   if (!requiredChapterId) {
     const previousChapter = await prisma.chapter.findFirst({
       where: {
         bookId: chapter.bookId,
         chapterNo: chapter.chapterNo - 1,
-      },
-      orderBy: {
-        sectionNo: "desc",
+        sectionNo: 0,
       },
     });
 
@@ -94,7 +111,10 @@ export const checkChapterAccess = async (
     throw new Error("Previous chapter not found");
   }
 
+  // ==========================================
   // Check previous chapter progress
+  // ==========================================
+
   const previousProgress =
     await prisma.userProgress.findUnique({
       where: {
@@ -114,6 +134,10 @@ export const checkChapterAccess = async (
       reason: "PREVIOUS_CHAPTER_INCOMPLETE",
     };
   }
+
+  // ==========================================
+  // Access granted
+  // ==========================================
 
   return {
     allowed: true,
