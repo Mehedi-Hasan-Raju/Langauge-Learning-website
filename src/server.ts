@@ -21,7 +21,7 @@ import ourMemberRoutes from "./modules/our-services/route/our-member.route";
 import subscriptionRoutes from "./modules/subscription/route/subscription.route";
 import dashboardRoutes from "./modules/user/dashboard/route/dashboard.route";
 import homeRoutes from "./modules/home/route/home.route";
-
+import adminDashboardRoutes from "./modules/user/admin-dashboard/route/admin-dashboard.route";
 const startServer = async () => {
   try {
     await prisma.$connect();
@@ -64,4 +64,6 @@ app.use("/api/our-members", ourMemberRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/user/dashboard", dashboardRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/admin/dashboard",adminDashboardRoutes);
+
 startServer();
