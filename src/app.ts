@@ -1,20 +1,40 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 
 const app = express();
 
+// ==========================================
+// Security Headers
+// ==========================================
+app.use(helmet());
 
+// ==========================================
+// CORS
+// ==========================================
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 
-//Middleware
-app.use(cors());
-app.use(express.json());
+// ==========================================
+// Body Parser
+// ==========================================
+// Prevent extremely large JSON payloads
+app.use(express.json({ limit: "1mb" }));
 
-//Health check
- app.get("/", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "German Learning Backend is running",
-    });
- });
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
- export default app;
+// ==========================================
+// Health Check
+// ==========================================
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "German Learning Backend is running",
+  });
+});
+
+export default app;
