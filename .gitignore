@@ -33,3 +33,7 @@ src/generated/
 
 scripts/
 create-admin.ts
+
+# Node package files
+package.json
+package-lock.json
