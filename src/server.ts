@@ -22,6 +22,8 @@ import subscriptionRoutes from "./modules/subscription/route/subscription.route"
 import dashboardRoutes from "./modules/user/dashboard/route/dashboard.route";
 import homeRoutes from "./modules/home/route/home.route";
 import adminDashboardRoutes from "./modules/user/admin-dashboard/route/admin-dashboard.route";
+import {notFoundHandler,globalErrorHandler,} from "./middlewares/error.middleware";
+
 const startServer = async () => {
   try {
     await prisma.$connect();
@@ -65,5 +67,13 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/user/dashboard", dashboardRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/admin/dashboard",adminDashboardRoutes);
+
+
+// 404 handler - unknown routes
+app.use(notFoundHandler);
+
+// Global error handler - must be last
+app.use(globalErrorHandler);
+
 
 startServer();
