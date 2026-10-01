@@ -1,5 +1,13 @@
 # 🇩🇪 German Learning Platform — Backend
 
+## ⚠️ License
+
+This project is **not open source**.
+
+The source code is publicly available for viewing and educational/reference purposes only. Unauthorized copying, modification, redistribution, or commercial use is not permitted without prior written permission.
+
+See the [LICENSE](./LICENSE) file for details.
+
 A scalable and production-oriented backend for a **German Language Learning Platform** built with **Node.js, TypeScript, Express.js, PostgreSQL, Prisma, AI, Cloudinary, and Python-based Text-to-Speech**.
 
 The platform is designed to provide structured German learning from **A1/A2/B1/B2 levels**, interactive exercises, progress tracking, AI-powered writing evaluation, speaking practice, premium content, and complete admin content management.
@@ -897,109 +905,6 @@ Testing covered:
 * Prisma errors
 * Protected routes
 * Admin routes
-
----
-
-# ⚙️ Environment Variables
-
-Create a `.env` file:
-
-```env
-DATABASE_URL=
-JWT_SECRET=
-
-GEMINI_API_KEY=
-
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
-PYTHON_BIN=python
-
-PORT=5000
-NODE_ENV=development
-```
-
-Never commit real secrets to GitHub.
-
----
-
-# 🚀 Installation
-
-Clone the repository:
-
-```bash
-git clone <your-repository-url>
-```
-
-Go to the project:
-
-```bash
-cd german-backend
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Generate Prisma Client:
-
-```bash
-npx prisma generate
-```
-
-Run development server:
-
-```bash
-npm run dev
-```
-
-Server:
-
-```text
-http://localhost:5000
-```
-
----
-
-# 🧱 Production Build
-
-Build the TypeScript project:
-
-```bash
-npm run build
-```
-
-Start production server:
-
-```bash
-npm start
-```
-
-Before deployment, make sure all required environment variables are configured.
-
----
-
-# 🔒 Environment & Secrets
-
-Sensitive files are excluded through `.gitignore`.
-
-Examples:
-
-```text
-.env
-.env.*
-node_modules/
-dist/
-logs/
-src/generated/
-```
-
-API keys, database credentials, JWT secrets, and Cloudinary credentials should never be committed to the repository.
-
----
 
 # 🗺️ Development Roadmap
 
