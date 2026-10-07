@@ -258,36 +258,48 @@ export const googleAuth = async (
     }
 };
 
+export const googleCallback = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query;
 
-export const googleCallback = async (
-    req: Request,
-    res: Response
-) => {
-    try {
-        const { code } = req.query;
-
-        if (!code || typeof code !== "string") {
-            return res.status(400).json({
-                success: false,
-                message: "Google authorization code is missing",
-            });
-        }
-
-        const result = await googleLogin(code);
-
-        res.status(200).json({
-            success: true,
-            message: "Google login successful",
-            ...result,
-        });
-    } catch (error: any) {
-        res.status(400).json({
-            success: false,
-            message:
-                error instanceof Error
-                    ? error.message
-                    : "Google login failed",
-        });
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Google authorization code is missing",
+      });
     }
-};
 
+    const result = await googleLogin(code);
+
+    const frontendUrl =
+      process.env.FRONTEND_URL || "http://localhost:3000";
+
+    if (!result.token) {
+      return res.status(500).json({
+        success: false,
+        message: "Google login token was not generated",
+      });
+    }
+
+    /*
+     * Redirect token through URL fragment.
+     * Fragment is not sent to the server in subsequent requests.
+     */
+    const redirectUrl =
+      `${frontendUrl}/auth/callback` +
+      `#token=${encodeURIComponent(result.token)}`;
+
+    return res.redirect(redirectUrl);
+  } catch (error) {
+    console.error("Google callback error:", error);
+
+    const frontendUrl =
+      process.env.FRONTEND_URL || "http://localhost:3000";
+
+    return res.redirect(
+      `${frontendUrl}/login?error=${encodeURIComponent(
+        "Google login failed"
+      )}`
+    );
+  }
+};
