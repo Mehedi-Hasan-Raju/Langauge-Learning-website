@@ -21,6 +21,14 @@ export const createBook = async (
       author,
       levelId,
     },
+    include: {
+      level: true,
+      _count: {
+        select: {
+          chapters: true,
+        },
+      },
+    },
   });
 };
 
@@ -41,9 +49,9 @@ export const getBooksByLevel = async (levelId: string) => {
     },
     include: {
       level: true,
-      chapters: {
-        orderBy: {
-          chapterNo: "asc",
+      _count: {
+        select: {
+          chapters: true,
         },
       },
     },
@@ -61,8 +69,18 @@ export const getBookById = async (id: string) => {
     include: {
       level: true,
       chapters: {
-        orderBy: {
-          chapterNo: "asc",
+        orderBy: [
+          {
+            chapterNo: "asc",
+          },
+          {
+            sectionNo: "asc",
+          },
+        ],
+      },
+      _count: {
+        select: {
+          chapters: true,
         },
       },
     },
@@ -122,6 +140,11 @@ export const updateBook = async (
     },
     include: {
       level: true,
+      _count: {
+        select: {
+          chapters: true,
+        },
+      },
     },
   });
 };

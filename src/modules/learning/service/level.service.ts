@@ -31,9 +31,9 @@ export const getAllLevels = async () => {
       order: "asc",
     },
     include: {
-      books: {
-        orderBy: {
-          createdAt: "asc",
+      _count: {
+        select: {
+          books: true,
         },
       },
     },
@@ -47,6 +47,11 @@ export const getLevelById = async (id: string) => {
       books: {
         orderBy: {
           createdAt: "asc",
+        },
+      },
+      _count: {
+        select: {
+          books: true,
         },
       },
     },
