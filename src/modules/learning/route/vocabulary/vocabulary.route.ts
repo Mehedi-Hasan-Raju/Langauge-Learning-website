@@ -11,6 +11,12 @@ import {
   getVocabularyByIdController,
   updateVocabularyController,
   deleteVocabularyController,
+  createVocabularyExerciseController,
+  getVocabularyExercisesByChapterController,
+  getVocabularyExerciseByIdController,
+  updateVocabularyExerciseController,
+  deleteVocabularyExerciseController,
+  submitVocabularyExerciseAnswerController,
 } from "../../../learning/controller/vocabulary/vocabulary.controller";
 
 const router = Router();
@@ -20,6 +26,18 @@ router.get(
   "/chapter/:chapterId",
   authenticate,
   getVocabularyByChapterController
+);
+
+router.get(
+  "/exercise/chapter/:chapterId",
+  authenticate,
+  getVocabularyExercisesByChapterController
+);
+
+router.get(
+  "/exercise/:id",
+  authenticate,
+  getVocabularyExerciseByIdController
 );
 
 router.get(
@@ -34,6 +52,33 @@ router.post(
   authenticate,
   authorizeAdmin,
   createVocabularyController
+);
+
+router.post(
+  "/exercise",
+  authenticate,
+  authorizeAdmin,
+  createVocabularyExerciseController
+);
+
+router.post(
+  "/exercise/submit",
+  authenticate,
+  submitVocabularyExerciseAnswerController
+);
+
+router.patch(
+  "/exercise/:id",
+  authenticate,
+  authorizeAdmin,
+  updateVocabularyExerciseController
+);
+
+router.delete(
+  "/exercise/:id",
+  authenticate,
+  authorizeAdmin,
+  deleteVocabularyExerciseController
 );
 
 router.patch(

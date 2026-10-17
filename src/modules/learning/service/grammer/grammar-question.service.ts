@@ -12,14 +12,24 @@ type GrammarQuestionData = {
   options?: string[];
   explanation?: string;
   grammarId: string;
+  practiceChapterId: string;
 };
 
-export const createGrammarQuestion = async (
-  data: GrammarQuestionData
+const validatePracticeChapter = async (
+  grammarId: string,
+  practiceChapterId: string
 ) => {
   const topic = await prisma.grammarTopic.findUnique({
     where: {
-      id: data.grammarId,
+      id: grammarId,
+    },
+    include: {
+      chapter: {
+        select: {
+          bookId: true,
+          chapterNo: true,
+        },
+      },
     },
   });
 
@@ -27,9 +37,47 @@ export const createGrammarQuestion = async (
     throw new Error("Grammar topic not found");
   }
 
+  const practiceChapter = await prisma.chapter.findUnique({
+    where: {
+      id: practiceChapterId,
+    },
+    select: {
+      bookId: true,
+      chapterNo: true,
+      sectionNo: true,
+    },
+  });
+
+  if (!practiceChapter) {
+    throw new Error("Practice chapter not found");
+  }
+
+  if (
+    practiceChapter.bookId !== topic.chapter.bookId ||
+    practiceChapter.chapterNo !== topic.chapter.chapterNo
+  ) {
+    throw new Error(
+      "Practice chapter must belong to the same book and chapter as the grammar topic"
+    );
+  }
+
+  if (practiceChapter.sectionNo <= 0) {
+    throw new Error("Practice chapter must be a subchapter");
+  }
+};
+
+export const createGrammarQuestion = async (
+  data: GrammarQuestionData
+) => {
+  await validatePracticeChapter(
+    data.grammarId,
+    data.practiceChapterId
+  );
+
   const existing = await prisma.grammarQuestion.findFirst({
     where: {
       grammarId: data.grammarId,
+      practiceChapterId: data.practiceChapterId,
       taskNo: data.taskNo,
     },
   });
@@ -49,6 +97,11 @@ export const createGrammarQuestion = async (
       options: data.options,
       explanation: data.explanation,
       grammarId: data.grammarId,
+      practiceChapterId: data.practiceChapterId,
+    },
+    include: {
+      grammar: true,
+      practiceChapter: true,
     },
   });
 };
@@ -63,6 +116,7 @@ export const getGrammarQuestionById = async (
       },
       include: {
         grammar: true,
+        practiceChapter: true,
       },
     });
 
@@ -88,12 +142,26 @@ export const updateGrammarQuestion = async (
     throw new Error("Grammar question not found");
   }
 
-  if (data.taskNo !== undefined) {
+  const practiceChapterId =
+    data.practiceChapterId ?? question.practiceChapterId;
+
+  if (data.practiceChapterId !== undefined) {
+    await validatePracticeChapter(
+      question.grammarId,
+      data.practiceChapterId
+    );
+  }
+
+  if (
+    data.taskNo !== undefined ||
+    data.practiceChapterId !== undefined
+  ) {
     const duplicate =
       await prisma.grammarQuestion.findFirst({
         where: {
           grammarId: question.grammarId,
-          taskNo: data.taskNo,
+          practiceChapterId,
+          taskNo: data.taskNo ?? question.taskNo,
           NOT: {
             id,
           },
@@ -130,6 +198,13 @@ export const updateGrammarQuestion = async (
       ...(data.explanation !== undefined && {
         explanation: data.explanation,
       }),
+      ...(data.practiceChapterId !== undefined && {
+        practiceChapterId: data.practiceChapterId,
+      }),
+    },
+    include: {
+      grammar: true,
+      practiceChapter: true,
     },
   });
 };
@@ -152,6 +227,10 @@ export const deleteGrammarQuestion = async (
     where: {
       id,
     },
+    include: {
+      grammar: true,
+      practiceChapter: true,
+    },
   });
 };
 //=====================
@@ -167,9 +246,9 @@ export const submitGrammarAnswer = async (
       id: questionId,
     },
     include: {
-      grammar: {
+      practiceChapter: {
         select: {
-          chapterId: true,
+          id: true,
         },
       },
     },
@@ -243,9 +322,7 @@ export const submitGrammarAnswer = async (
   const totalQuestions =
     await prisma.grammarQuestion.count({
       where: {
-        grammar: {
-          chapterId: question.grammar.chapterId,
-        },
+        practiceChapterId: question.practiceChapterId,
       },
     });
 
@@ -258,9 +335,7 @@ export const submitGrammarAnswer = async (
       where: {
         userId,
         question: {
-          grammar: {
-            chapterId: question.grammar.chapterId,
-          },
+          practiceChapterId: question.practiceChapterId,
         },
       },
       select: {
@@ -298,9 +373,7 @@ export const submitGrammarAnswer = async (
       where: {
         userId,
         question: {
-          grammar: {
-            chapterId: question.grammar.chapterId,
-          },
+          practiceChapterId: question.practiceChapterId,
         },
       },
       orderBy: {
@@ -395,7 +468,7 @@ export const submitGrammarAnswer = async (
       where: {
         userId_chapterId: {
           userId,
-          chapterId: question.grammar.chapterId,
+          chapterId: question.practiceChapter.id,
         },
       },
     });
@@ -434,12 +507,12 @@ export const submitGrammarAnswer = async (
       where: {
         userId_chapterId: {
           userId,
-          chapterId: question.grammar.chapterId,
+          chapterId: question.practiceChapter.id,
         },
       },
       create: {
         userId,
-        chapterId: question.grammar.chapterId,
+        chapterId: question.practiceChapter.id,
 
         grammarProgress: grammarProgress,
         vocabularyProgress: 0,

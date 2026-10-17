@@ -48,19 +48,20 @@ model User {
   emailVerified Boolean @default(false)
   googleId      String? @unique
 
-  progress              UserProgress[]
-  grammarSubmissions    GrammarSubmission[]
-  writingSubmissions    WritingSubmission[]
-  speakingSubmissions   SpeakingSubmission[]
-  speakingConversations SpeakingConversation[]
-  listeningSubmissions  ListeningSubmission[]
-  sentenceSubmissions   SentenceSubmission[]
-  subscriptions         Subscription[]
-  payments              Payment[]
-  blogLikes             BlogLike[]
-  verificationTokens    EmailVerificationToken[]
-  passwordResetTokens   PasswordResetToken[]
-  blogs                 Blog[]
+  progress                      UserProgress[]
+  grammarSubmissions            GrammarSubmission[]
+  writingSubmissions            WritingSubmission[]
+  speakingSubmissions           SpeakingSubmission[]
+  speakingConversations         SpeakingConversation[]
+  listeningSubmissions          ListeningSubmission[]
+  sentenceSubmissions           SentenceSubmission[]
+  vocabularyExerciseSubmissions VocabularyExerciseSubmission[]
+  subscriptions                 Subscription[]
+  payments                      Payment[]
+  blogLikes                     BlogLike[]
+  verificationTokens            EmailVerificationToken[]
+  passwordResetTokens           PasswordResetToken[]
+  blogs                         Blog[]
 
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
@@ -121,13 +122,15 @@ model Chapter {
   bookId String
   book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
-  vocabularies       Vocabulary[]
-  grammarTopics      GrammarTopic[]
-  sentenceExercises  SentenceExercise[]
-  writingTasks       WritingTask[]
-  listeningExercises ListeningExercise[]
-  speakingPractices  SpeakingPractice[]
-  progress           UserProgress[]
+  vocabularies             Vocabulary[]
+  vocabularyExercises      VocabularyExercise[] @relation("VocabularyPracticeChapter")
+  grammarTopics            GrammarTopic[]
+  grammarPracticeQuestions GrammarQuestion[]    @relation("GrammarQuestionPracticeChapter")
+  sentenceExercises        SentenceExercise[]
+  writingTasks             WritingTask[]
+  listeningExercises       ListeningExercise[]
+  speakingPractices        SpeakingPractice[]
+  progress                 UserProgress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -179,13 +182,38 @@ model VocabularyExercise {
 
   explanation String?
 
-  vocabularyId String
-  vocabulary   Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  chapterId String
+  chapter   Chapter @relation("VocabularyPracticeChapter", fields: [chapterId], references: [id], onDelete: Cascade)
+
+  vocabularyId String?
+  vocabulary   Vocabulary?                    @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  submissions  VocabularyExerciseSubmission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([vocabularyId])
+  @@index([chapterId])
+}
+
+model VocabularyExerciseSubmission {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   VocabularyExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  userAnswer String
+  isCorrect  Boolean
+  score      Float
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([userId, exerciseId])
 }
 
 // ========================================
@@ -204,7 +232,7 @@ model GrammarTopic {
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
-  questions GrammarQuestion[]
+  questions GrammarQuestion[] @relation("GrammarTopicQuestions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,14 +258,17 @@ model GrammarQuestion {
   options     Json?
   explanation String?
 
-  grammarId   String
-  grammar     GrammarTopic        @relation(fields: [grammarId], references: [id], onDelete: Cascade)
-  submissions GrammarSubmission[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  grammarId         String
+  grammar           GrammarTopic        @relation("GrammarTopicQuestions", fields: [grammarId], references: [id], onDelete: Cascade)
+  practiceChapterId String
+  practiceChapter   Chapter             @relation("GrammarQuestionPracticeChapter", fields: [practiceChapterId], references: [id], onDelete: Cascade)
+  submissions       GrammarSubmission[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  @@unique([grammarId, taskNo])
+  @@unique([grammarId, practiceChapterId, taskNo])
   @@index([grammarId])
+  @@index([practiceChapterId])
 }
 
 //==================================
@@ -570,23 +601,23 @@ model UserProgress {
 // ========================================
 
 model Subscription {
-  id              String             @id @default(uuid())
-  userId          String
-  plan            String             @default("PREMIUM")
-  amount          Decimal            @db.Decimal(10, 2)
-  currency        String             @default("BDT")
+  id       String  @id @default(uuid())
+  userId   String
+  plan     String  @default("PREMIUM")
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("BDT")
 
-  startDate       DateTime
-  endDate         DateTime
+  startDate DateTime
+  endDate   DateTime
 
-  status          SubscriptionStatus @default(ACTIVE)
+  status SubscriptionStatus @default(ACTIVE)
 
-  user            User               @relation(fields: [userId],references: [id],onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  payments        Payment[]
+  payments Payment[]
 
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, status])
@@ -598,28 +629,28 @@ model Subscription {
 // ========================================
 
 model Payment {
-  id              String          @id @default(uuid())
-  userId          String
-  subscriptionId  String?
+  id             String  @id @default(uuid())
+  userId         String
+  subscriptionId String?
 
-  amount          Decimal         @db.Decimal(10, 2)
-  currency        String          @default("BDT")
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("BDT")
 
-  status          PaymentStatus   @default(PENDING)
+  status PaymentStatus @default(PENDING)
 
-  provider        String?
-  paymentMethod   String?
-  transactionId   String?
-  paidAt          DateTime?
+  provider      String?
+  paymentMethod String?
+  transactionId String?
+  paidAt        DateTime?
 
-  metadata        Json?
+  metadata Json?
 
-  user            User            @relation(fields: [userId], references: [id],onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id],onDelete: SetNull)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([subscriptionId])
@@ -685,19 +716,18 @@ model BlogLike {
 // ========================================
 
 model VisaChecklistCategory {
-  id          String               @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
   description String?
-  order       Int                  @default(0)
+  order       Int     @default(0)
 
-  items       VisaChecklistItem[]
+  items VisaChecklistItem[]
 
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([order])
 }
-
 
 // ========================================
 // VISA CHECKLIST ITEM
@@ -711,7 +741,7 @@ model VisaChecklistItem {
   order       Int
 
   categoryId String
-  category    VisaChecklistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category   VisaChecklistCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -784,19 +814,19 @@ enum ServiceType {
 }
 
 model OurService {
-  id                String      @id @default(uuid())
-  title             String
-  shortDescription  String
-  description       String
-  imageUrl          String?
-  imagePublicId     String?
-  type              ServiceType @default(GENERAL)
-  examName          String?
-  order             Int         @default(0)
-  active            Boolean     @default(true)
+  id               String      @id @default(uuid())
+  title            String
+  shortDescription String
+  description      String
+  imageUrl         String?
+  imagePublicId    String?
+  type             ServiceType @default(GENERAL)
+  examName         String?
+  order            Int         @default(0)
+  active           Boolean     @default(true)
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([order])
   @@index([active])
@@ -804,24 +834,23 @@ model OurService {
 }
 
 model OurMember {
-  id                String   @id @default(uuid())
-  name              String
-  language          String
-  role              String?
-  shortDescription  String
-  imageUrl          String?
-  imagePublicId     String?
-  order             Int      @default(0)
-  active            Boolean  @default(true)
+  id               String  @id @default(uuid())
+  name             String
+  language         String
+  role             String?
+  shortDescription String
+  imageUrl         String?
+  imagePublicId    String?
+  order            Int     @default(0)
+  active           Boolean @default(true)
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([order])
   @@index([active])
   @@index([language])
 }
-
 
 // ========================================
 // EMAIL VERIFICATION TOKEN

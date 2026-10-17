@@ -50,12 +50,35 @@ export const getGrammarTopicsByChapter = async (
     throw new Error("Chapter not found");
   }
 
+  const topicChapter =
+    chapter.sectionNo === 0
+      ? chapter
+      : await prisma.chapter.findUnique({
+          where: {
+            bookId_chapterNo_sectionNo: {
+              bookId: chapter.bookId,
+              chapterNo: chapter.chapterNo,
+              sectionNo: 0,
+            },
+          },
+        });
+
+  if (!topicChapter) {
+    throw new Error("Parent chapter not found");
+  }
+
   return await prisma.grammarTopic.findMany({
     where: {
-      chapterId,
+      chapterId: topicChapter.id,
     },
     include: {
       questions: {
+        where: {
+          practiceChapterId: chapter.id,
+        },
+        include: {
+          practiceChapter: true,
+        },
         orderBy: {
           taskNo: "asc",
         },
@@ -77,6 +100,9 @@ export const getGrammarTopicById = async (
     include: {
       chapter: true,
       questions: {
+        include: {
+          practiceChapter: true,
+        },
         orderBy: {
           taskNo: "asc",
         },

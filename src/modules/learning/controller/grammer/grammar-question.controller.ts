@@ -20,6 +20,7 @@ export const createGrammarQuestionController =
         options,
         explanation,
         grammarId,
+        practiceChapterId,
       } = req.body;
 
       if (
@@ -27,12 +28,14 @@ export const createGrammarQuestionController =
         !question ||
         !type ||
         !answer ||
-        !grammarId
+        !grammarId ||
+        typeof practiceChapterId !== "string" ||
+        !practiceChapterId
       ) {
         return res.status(400).json({
           success: false,
           message:
-            "taskNo, question, type, answer and grammarId are required",
+            "taskNo, question, type, answer, grammarId and practiceChapterId are required",
         });
       }
 
@@ -45,6 +48,7 @@ export const createGrammarQuestionController =
           options,
           explanation,
           grammarId,
+          practiceChapterId,
         });
 
       return res.status(201).json({
@@ -111,7 +115,24 @@ export const updateGrammarQuestionController =
           ...(req.body.taskNo !== undefined && {
             taskNo: Number(req.body.taskNo),
           }),
-          ...req.body,
+          ...(req.body.question !== undefined && {
+            question: req.body.question,
+          }),
+          ...(req.body.type !== undefined && {
+            type: req.body.type,
+          }),
+          ...(req.body.answer !== undefined && {
+            answer: req.body.answer,
+          }),
+          ...(req.body.options !== undefined && {
+            options: req.body.options,
+          }),
+          ...(req.body.explanation !== undefined && {
+            explanation: req.body.explanation,
+          }),
+          ...(req.body.practiceChapterId !== undefined && {
+            practiceChapterId: req.body.practiceChapterId,
+          }),
         });
 
       return res.status(200).json({
@@ -143,12 +164,13 @@ export const deleteGrammarQuestionController =
         });
       }
 
-      await deleteGrammarQuestion(id);
+      const question = await deleteGrammarQuestion(id);
 
       return res.status(200).json({
         success: true,
         message:
           "Grammar question deleted successfully",
+        question,
       });
     } catch (error) {
       return res.status(404).json({
@@ -219,4 +241,3 @@ export const deleteGrammarQuestionController =
     });
   }
 };
-
